@@ -44,6 +44,9 @@
   --color-defendant: #5a7a7a;
   --color-defendant-light: #6e9494;
   --color-defendant-dim: #3e5858;
+  --color-court: #9e8a2a;
+  --color-court-light: #b8a23a;
+  --color-court-dim: #786a1a;
   --color-surface: #d8cfc2;
   --color-surface-elevated: #e2d9cc;
 }
@@ -127,6 +130,12 @@
 }
 .defendant-glow {
   box-shadow: 0 0 20px rgba(90, 122, 122, 0.06), 0 0 60px rgba(90, 122, 122, 0.03);
+}
+.court-glow {
+  box-shadow: 0 0 20px rgba(158, 138, 42, 0.08), 0 0 60px rgba(158, 138, 42, 0.04);
+}
+.court-glow-strong {
+  box-shadow: 0 0 30px rgba(158, 138, 42, 0.12), 0 0 80px rgba(158, 138, 42, 0.05);
 }
 
 /* Focus glow for textarea */

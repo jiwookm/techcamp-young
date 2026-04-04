@@ -135,24 +135,10 @@ export function CourthouseView({
           />
         </motion.div>
 
-        {/* Prosecutor & Defendant */}
+        {/* Defendant & Prosecutor */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-          >
-            <AgentPanel
-              role="prosecutor"
-              icon={Swords}
-              messages={prosecutorMessages}
-              isActive={activeAgent === "prosecutor"}
-              variant="vertical"
-              streamingContent={activeAgent === "prosecutor" ? Object.values(streamingText)[0] : undefined}
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
@@ -163,6 +149,20 @@ export function CourthouseView({
               isActive={activeAgent === "defendant"}
               variant="vertical"
               streamingContent={activeAgent === "defendant" ? Object.values(streamingText)[0] : undefined}
+            />
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+          >
+            <AgentPanel
+              role="prosecutor"
+              icon={Swords}
+              messages={prosecutorMessages}
+              isActive={activeAgent === "prosecutor"}
+              variant="vertical"
+              streamingContent={activeAgent === "prosecutor" ? Object.values(streamingText)[0] : undefined}
             />
           </motion.div>
         </div>

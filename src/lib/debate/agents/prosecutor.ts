@@ -54,7 +54,7 @@ Rigorously analyze the Defendant's initial response. For each claim and source:
 
 4. **Cognitive Distortions**: Is the Defendant using assertive language beyond what the evidence supports? Are uncertainties properly disclosed?
 
-Do NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format.`,
+Do NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -89,7 +89,7 @@ For your final challenge:
 3. **Identify what remains unresolved**: Which of your original challenges did the Defendant fail to adequately address?
 4. **Flag any scope creep**: If the Defendant introduced new topics or claims not in the original response, flag this as evasion.
 
-Do NOT concede. Push on every remaining weakness. Cite all sources inline using [Source Name](URL) format.`,
+Do NOT concede. Push on every remaining weakness. Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },

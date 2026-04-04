@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { type LucideIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DebateMessage, AgentRole, AGENT_CONFIGS } from "@/lib/types";
+import { DebateMessage, AgentRole, AGENT_CONFIGS, MessageType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface AgentPanelProps {
@@ -45,13 +45,27 @@ const ROLE_STYLES: Record<
     glowClass: "defendant-glow",
   },
   judge: {
-    border: "border-burgundy/12",
-    activeBorder: "border-burgundy/35",
-    headerBg: "bg-burgundy/5",
-    dot: "bg-burgundy",
-    textColor: "text-burgundy",
-    glowClass: "burgundy-glow",
+    border: "border-court/12",
+    activeBorder: "border-court/35",
+    headerBg: "bg-court/5",
+    dot: "bg-court",
+    textColor: "text-court",
+    glowClass: "court-glow",
   },
+};
+
+const MESSAGE_LABELS: Record<MessageType, string> = {
+  opening: "Opening Statement",
+  response: "Initial Response",
+  challenge: "Challenge",
+  rebuttal: "Rebuttal",
+  verdict: "Verdict",
+};
+
+const linkComponents = {
+  a: ({ children, ...props }: React.ComponentPropsWithoutRef<"a"> & { children?: React.ReactNode }) => (
+    <a {...props} target="_blank" rel="noopener noreferrer">{children}</a>
+  ),
 };
 
 function TypingIndicator({ role }: { role: AgentRole }) {
@@ -69,6 +83,134 @@ function TypingIndicator({ role }: { role: AgentRole }) {
   );
 }
 
+function MessageCard({
+  msg,
+  role,
+  isLatest,
+}: {
+  msg: DebateMessage;
+  role: AgentRole;
+  isLatest: boolean;
+}) {
+  const styles = ROLE_STYLES[role];
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isLatest || !scrollRef.current) return;
+    const viewport = scrollRef.current.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [msg.content, isLatest]);
+
+  return (
+    <motion.div
+      className={cn(
+        "rounded-lg border bg-surface-elevated/30",
+        styles.border,
+      )}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+    >
+      <div
+        className={cn(
+          "flex items-center gap-2 px-4 py-2 border-b rounded-t-lg",
+          styles.headerBg,
+          styles.border,
+        )}
+      >
+        <span
+          className={cn(
+            "font-serif text-[10px] tracking-[0.12em] font-medium uppercase",
+            styles.textColor,
+          )}
+        >
+          {MESSAGE_LABELS[msg.type] ?? msg.type}
+        </span>
+      </div>
+      <div ref={scrollRef}>
+        <ScrollArea className="max-h-[280px]">
+          <div className="px-4 py-3">
+            <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
+              <ReactMarkdown components={linkComponents}>{msg.content}</ReactMarkdown>
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </motion.div>
+  );
+}
+
+function StreamingCard({
+  content,
+  role,
+}: {
+  content: string;
+  role: AgentRole;
+}) {
+  const styles = ROLE_STYLES[role];
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    const viewport = scrollRef.current.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [content]);
+
+  return (
+    <motion.div
+      className={cn(
+        "rounded-lg border bg-surface-elevated/30",
+        styles.activeBorder,
+        styles.glowClass,
+      )}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 px-4 py-2 border-b rounded-t-lg",
+          styles.headerBg,
+          styles.border,
+        )}
+      >
+        <span
+          className={cn(
+            "font-serif text-[10px] tracking-[0.12em] font-medium uppercase",
+            styles.textColor,
+          )}
+        >
+          Speaking
+        </span>
+        <span
+          className={cn(
+            "w-1.5 h-1.5 rounded-full animate-pulse",
+            styles.dot,
+          )}
+        />
+      </div>
+      <div ref={scrollRef}>
+        <ScrollArea className="max-h-[280px]">
+          <div className="px-4 py-3">
+            <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
+              <ReactMarkdown components={linkComponents}>{content}</ReactMarkdown>
+              <span className="inline-block w-0.5 h-4 bg-burgundy/50 animate-pulse ml-0.5 align-text-bottom" />
+            </div>
+          </div>
+        </ScrollArea>
+      </div>
+    </motion.div>
+  );
+}
+
 export function AgentPanel({
   role,
   icon: Icon,
@@ -79,6 +221,115 @@ export function AgentPanel({
 }: AgentPanelProps) {
   const config = AGENT_CONFIGS[role];
   const styles = ROLE_STYLES[role];
+
+  // Judge still uses the old single-panel layout
+  if (role === "judge") {
+    return (
+      <JudgePanel
+        icon={Icon}
+        messages={messages}
+        isActive={isActive}
+        variant={variant}
+        streamingContent={streamingContent}
+      />
+    );
+  }
+
+  const showTypingPlaceholder = isActive && !streamingContent && messages.length === 0;
+
+  return (
+    <div className="space-y-3">
+      {/* Agent column header */}
+      <div
+        className={cn(
+          "flex items-center gap-3 px-5 py-3 rounded-xl border bg-surface-elevated/50 backdrop-blur-sm",
+          isActive ? styles.activeBorder : styles.border,
+          isActive && styles.glowClass,
+        )}
+      >
+        <Icon className={cn("w-4 h-4", styles.textColor)} strokeWidth={1.5} />
+        <span
+          className={cn(
+            "font-serif text-xs tracking-[0.15em] font-medium",
+            styles.textColor,
+          )}
+        >
+          {config.title}
+        </span>
+        {isActive && (
+          <motion.span
+            className={cn(
+              "ml-auto flex items-center gap-1.5 text-[10px]",
+              styles.textColor,
+            )}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <span
+              className={cn(
+                "w-1.5 h-1.5 rounded-full animate-pulse",
+                styles.dot,
+              )}
+            />
+            Speaking
+          </motion.span>
+        )}
+      </div>
+
+      {/* Individual message cards */}
+      {messages.map((msg, i) => (
+        <MessageCard
+          key={msg.id}
+          msg={msg}
+          role={role}
+          isLatest={i === messages.length - 1}
+        />
+      ))}
+
+      {/* Streaming card */}
+      {isActive && streamingContent && (
+        <StreamingCard content={streamingContent} role={role} />
+      )}
+
+      {/* Typing indicator when waiting */}
+      {showTypingPlaceholder && (
+        <div
+          className={cn(
+            "rounded-lg border bg-surface-elevated/30 px-4",
+            styles.border,
+          )}
+        >
+          <TypingIndicator role={role} />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!isActive && messages.length === 0 && (
+        <div
+          className={cn(
+            "rounded-lg border bg-surface-elevated/30 px-4 py-8",
+            styles.border,
+          )}
+        >
+          <p className="text-sm text-muted-foreground/35 italic text-center font-serif">
+            Awaiting proceedings...
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Judge keeps the original single-panel layout since it only has opening statements */
+function JudgePanel({
+  icon: Icon,
+  messages,
+  isActive,
+  variant,
+  streamingContent,
+}: Omit<AgentPanelProps, "role">) {
+  const config = AGENT_CONFIGS.judge;
+  const styles = ROLE_STYLES.judge;
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -158,7 +409,7 @@ export function AgentPanel({
                   {msg.type}
                 </span>
                 <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown components={linkComponents}>{msg.content}</ReactMarkdown>
                 </div>
               </motion.div>
             ))}
@@ -172,12 +423,12 @@ export function AgentPanel({
                   speaking
                 </span>
                 <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
-                  <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                  <ReactMarkdown components={linkComponents}>{streamingContent}</ReactMarkdown>
                   <span className="inline-block w-0.5 h-4 bg-burgundy/50 animate-pulse ml-0.5 align-text-bottom" />
                 </div>
               </motion.div>
             )}
-            {isActive && !streamingContent && <TypingIndicator role={role} />}
+            {isActive && !streamingContent && <TypingIndicator role="judge" />}
           </div>
         </ScrollArea>
       </div>

@@ -71,7 +71,7 @@ IMPORTANT: Stay focused on the claims in your initial response that the Prosecut
 - If the Prosecutor identifies a genuine error: correct ONLY that specific claim. Do not add new topics.
 - Do NOT expand the scope of your response. Do NOT introduce new arguments or information beyond what is needed to address the Prosecutor's specific challenges.
 
-Cite all sources inline using [Source Name](URL) format.`,
+Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
     tools: {
       web_search_preview: openai.tools.webSearchPreview({}),
     },
