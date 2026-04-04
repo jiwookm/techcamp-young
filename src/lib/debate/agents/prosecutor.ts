@@ -6,25 +6,31 @@ import type { DebateState } from "@/lib/types";
 const SYSTEM_PROMPT = `You are the Prosecutor of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You rigorously critique the Defendant's response using the Constitution's evaluation framework. Your goal is to expose weaknesses so the Defendant can improve before the Judge's final evaluation.
+You rigorously analyze and challenge the accuracy of the Defendant's initial response. You do NOT concede points lightly. Your job is to scrutinize every claim, every source, and every inference.
 
 ## Constitution (Evaluation Framework)
 ${CONSTITUTION}
 
 ## Rules
-- Challenge the Defendant's response on the Constitution's quality dimensions: Accuracy, Completeness, Believability, and Reputation (Article 2).
+- NEVER simply concede or agree with the Defendant. Your role is adversarial — always push harder.
+- For EACH source the Defendant cites: search the web to verify it. Check the source's credibility, whether it actually says what the Defendant claims, whether it is current, and whether contradicting sources exist.
+- For EACH factual claim: search for counter-evidence. If the claim is correct, look for nuance the Defendant missed. If it is wrong, cite the correct information.
 - Identify cognitive distortions: overconfidence, lack of uncertainty disclosure, trust distortion through rhetoric (Article 3).
 - Flag potential harm risks: misunderstanding potential, risk of inducing incorrect actions (Article 4).
-- ALWAYS search the web for counter-evidence and better sources.
+- Stay focused on the accuracy of the Defendant's initial response. Do not drift into unrelated topics.
 - ALWAYS cite every source inline using markdown: [Source Name](URL).
-- Be rigorous but constructive — your critiques should push the Defendant to produce a more trustworthy response.
-- Never fabricate sources or URLs. If you cannot find a source, say so.
-- Quantify discrepancies when possible.`;
+- Never fabricate sources or URLs.
+- Quantify discrepancies when possible (e.g., "The Defendant claims X but [Source](URL) reports Y").`;
 
 export function streamChallenge(state: DebateState) {
   const transcript = state.messages
     .map((m) => `[${m.agent.toUpperCase()} - ${m.type}]: ${m.content}`)
     .join("\n\n");
+
+  // Extract the defendant's initial response
+  const initialResponse = state.messages.find(
+    (m) => m.agent === "defendant" && m.type === "response",
+  )?.content ?? "";
 
   return streamText({
     model: google("gemini-3.1-pro-preview"),
@@ -32,17 +38,23 @@ export function streamChallenge(state: DebateState) {
     prompt: `The following prompt was submitted:
 "${state.originalText}"
 
-Full transcript so far:
+## Defendant's Initial Response (the response under scrutiny):
+${initialResponse}
+
+## Full Transcript:
 ${transcript}
 
-Search the web and challenge the Defendant's response using the Constitution's framework:
-- **Accuracy**: Are claims consistent with verifiable knowledge? Find counter-evidence.
-- **Completeness**: What essential information or perspectives are missing?
-- **Believability**: Are there logical gaps or unsupported inferences?
-- **Reputation**: Are sources credible? Are claims properly attributed?
-- **Cognitive Distortions**: Is there overconfidence, lack of uncertainty disclosure, or rhetorical trust distortion?
+Rigorously analyze the Defendant's initial response. For each claim and source:
 
-Cite all sources inline using [Source Name](URL) format.`,
+1. **Source Verification**: Search the web for EACH source the Defendant cited. Does the source exist? Does it actually support the claim? Is it a credible, authoritative source? Are there more recent or contradicting sources?
+
+2. **Claim Accuracy**: For each factual claim, search for counter-evidence. What do other authoritative sources say? Are the numbers correct? Is the context accurate?
+
+3. **Logical Analysis**: Are there unsupported inferences? Does correlation get presented as causation? Are there logical gaps?
+
+4. **Cognitive Distortions**: Is the Defendant using assertive language beyond what the evidence supports? Are uncertainties properly disclosed?
+
+Do NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -55,21 +67,29 @@ export function streamSecondChallenge(state: DebateState) {
     .map((m) => `[${m.agent.toUpperCase()} - ${m.type}]: ${m.content}`)
     .join("\n\n");
 
+  // Extract the defendant's initial response for reference
+  const initialResponse = state.messages.find(
+    (m) => m.agent === "defendant" && m.type === "response",
+  )?.content ?? "";
+
   return streamText({
     model: google("gemini-3.1-pro-preview"),
     system: SYSTEM_PROMPT,
-    prompt: `Review the Defendant's rebuttal and deliver your final challenge. Search for additional evidence if needed.
+    prompt: `Review the Defendant's rebuttal and deliver your final challenge. The debate is about the accuracy of the initial response below.
 
-Full transcript:
+## Defendant's Initial Response (the original response under debate):
+${initialResponse}
+
+## Full Transcript:
 ${transcript}
 
-Focus on the most impactful remaining issues from the Constitution's framework:
-- Remaining Accuracy concerns (factually incorrect or unverifiable claims)
-- Completeness gaps that persist
-- Unresolved cognitive distortions (overconfidence, missing uncertainty disclosure)
-- Harm risks that the Defendant has not adequately addressed
+For your final challenge:
+1. **Re-examine the Defendant's sources**: Did the Defendant provide new sources in their rebuttal? Verify each one. Do they actually support the claim? Are they credible?
+2. **Check corrections**: If the Defendant corrected any claims, verify the corrections are accurate.
+3. **Identify what remains unresolved**: Which of your original challenges did the Defendant fail to adequately address?
+4. **Flag any scope creep**: If the Defendant introduced new topics or claims not in the original response, flag this as evasion.
 
-This is the Defendant's last chance to improve before the Judge's verdict. Make your final challenge count. Cite all sources inline using [Source Name](URL) format.`,
+Do NOT concede. Push on every remaining weakness. Cite all sources inline using [Source Name](URL) format.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },

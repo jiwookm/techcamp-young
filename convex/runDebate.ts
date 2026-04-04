@@ -36,25 +36,26 @@ ${CONSTITUTION}
 const PROSECUTOR_SYSTEM = `You are the Prosecutor of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You rigorously critique the Defendant's response using the Constitution's evaluation framework. Your goal is to expose weaknesses so the Defendant can improve before the Judge's final evaluation.
+You rigorously analyze and challenge the accuracy of the Defendant's initial response. You do NOT concede points lightly. Your job is to scrutinize every claim, every source, and every inference.
 
 ## Constitution (Evaluation Framework)
 ${CONSTITUTION}
 
 ## Rules
-- Challenge the Defendant's response on the Constitution's quality dimensions: Accuracy, Completeness, Believability, and Reputation (Article 2).
+- NEVER simply concede or agree with the Defendant. Your role is adversarial — always push harder.
+- For EACH source the Defendant cites: search the web to verify it. Check the source's credibility, whether it actually says what the Defendant claims, whether it is current, and whether contradicting sources exist.
+- For EACH factual claim: search for counter-evidence. If the claim is correct, look for nuance the Defendant missed. If it is wrong, cite the correct information.
 - Identify cognitive distortions: overconfidence, lack of uncertainty disclosure, trust distortion through rhetoric (Article 3).
 - Flag potential harm risks: misunderstanding potential, risk of inducing incorrect actions (Article 4).
-- ALWAYS search the web for counter-evidence and better sources.
+- Stay focused on the accuracy of the Defendant's initial response. Do not drift into unrelated topics.
 - ALWAYS cite every source inline using markdown: [Source Name](URL).
-- Be rigorous but constructive — your critiques should push the Defendant to produce a more trustworthy response.
 - Never fabricate sources or URLs.
-- Quantify discrepancies when possible.`;
+- Quantify discrepancies when possible (e.g., "The Defendant claims X but [Source](URL) reports Y").`;
 
 const DEFENDANT_SYSTEM = `You are the Defendant of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You generate comprehensive, well-researched responses to prompts. You then defend and improve your work through adversarial debate with the Prosecutor. Your final response will be evaluated by the Judge under the Constitution's trustworthiness criteria.
+You generate a well-researched response to a prompt, then defend the accuracy of that response through adversarial debate with the Prosecutor.
 
 ## Constitution (You will be evaluated on these criteria)
 ${CONSTITUTION}
@@ -65,9 +66,10 @@ ${CONSTITUTION}
 - Your initial response should be thorough, well-structured, and directly address the prompt.
 - Be aware you will be evaluated on: Accuracy, Completeness, Believability, Reputation (Article 2).
 - Explicitly acknowledge uncertainty where it exists — assertive language without evidence will be flagged as overconfidence (Article 3).
-- During rebuttals: address the Prosecutor's critiques head-on, strengthen weak points with new evidence, and concede valid criticisms honestly.
-- Your final rebuttal IS the output shown to the user. Make it the best possible response to the original prompt.
-- Never fabricate sources or URLs.`;
+- During rebuttals: DEFEND the accuracy of your initial response. Do NOT introduce new topics or expand scope. Focus exclusively on the claims the Prosecutor challenged.
+- If a source you cited is questioned, provide additional evidence supporting that source's credibility or find a stronger replacement source for the same claim.
+- If a claim is genuinely inaccurate, correct it — but do not add unrelated new information.
+- Never fabricate sources or URLs. If you cannot find a source, say so.`;
 
 // --- Helpers ---
 
@@ -178,7 +180,6 @@ export const run = internalAction({
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
-          temperature: 0.5,
         }),
         ctx,
         debateId,
@@ -188,13 +189,20 @@ export const run = internalAction({
         debateCtx,
       );
 
+      // Extract initial response for reference in subsequent steps
+      const initialResponse = debateCtx.transcript
+        .find((t) => t.startsWith("[DEFENDANT - response]"));
+      const initialResponseContent = initialResponse
+        ? initialResponse.replace(/^\[DEFENDANT - response\]: /, "")
+        : "";
+
       // Step 3: Prosecutor challenge #1
       if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
           model: google("gemini-3.1-pro-preview"),
           system: PROSECUTOR_SYSTEM,
-          prompt: `The following prompt was submitted:\n"${debate.text}"\n\nFull transcript so far:\n${debateCtx.transcript.join("\n\n")}\n\nSearch the web and challenge the Defendant's response using the Constitution's framework:\n- Accuracy: Are claims consistent with verifiable knowledge?\n- Completeness: What essential information is missing?\n- Believability: Are there logical gaps?\n- Reputation: Are sources credible?\n- Cognitive Distortions: Overconfidence, lack of uncertainty disclosure?\n\nCite all sources inline using [Source Name](URL) format.`,
+          prompt: `The following prompt was submitted:\n"${debate.text}"\n\n## Defendant's Initial Response (the response under scrutiny):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nRigorously analyze the Defendant's initial response. For each claim and source:\n\n1. **Source Verification**: Search the web for EACH source the Defendant cited. Does the source exist? Does it actually support the claim? Is it a credible, authoritative source? Are there more recent or contradicting sources?\n\n2. **Claim Accuracy**: For each factual claim, search for counter-evidence. What do other authoritative sources say? Are the numbers correct? Is the context accurate?\n\n3. **Logical Analysis**: Are there unsupported inferences? Does correlation get presented as causation? Are there logical gaps?\n\n4. **Cognitive Distortions**: Is the Defendant using assertive language beyond what the evidence supports? Are uncertainties properly disclosed?\n\nDo NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
             google_search: google.tools.googleSearch({}),
           },
@@ -214,11 +222,10 @@ export const run = internalAction({
         streamText({
           model: openai.responses("gpt-5.4"),
           system: DEFENDANT_SYSTEM,
-          prompt: `Review the Prosecutor's challenges and provide your rebuttal. Search for additional evidence to strengthen your position.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nAddress each critique directly. Correct Accuracy issues with evidence. Fill Completeness gaps. Add uncertainty disclosure where flagged. Concede valid points honestly. Your response should be a COMPLETE, IMPROVED version — not just rebuttals. Cite all sources inline using [Source Name](URL) format.`,
+          prompt: `The Prosecutor has challenged your response. Defend the accuracy of your initial response.\n\n## Your Initial Response (the response under debate):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nIMPORTANT: Stay focused on the claims in your initial response that the Prosecutor challenged. For each challenge:\n- If the Prosecutor questions a source: verify that source's credibility and provide corroborating evidence from other sources.\n- If the Prosecutor disputes a factual claim: search the web for additional evidence supporting or correcting that specific claim.\n- If the Prosecutor identifies a genuine error: correct ONLY that specific claim. Do not add new topics.\n- Do NOT expand the scope of your response. Do NOT introduce new arguments or information beyond what is needed to address the Prosecutor's specific challenges.\n\nCite all sources inline using [Source Name](URL) format.`,
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
-          temperature: 0.5,
         }),
         ctx,
         debateId,
@@ -234,7 +241,7 @@ export const run = internalAction({
         streamText({
           model: google("gemini-3.1-pro-preview"),
           system: PROSECUTOR_SYSTEM,
-          prompt: `Review the Defendant's rebuttal and deliver your final challenge.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nFocus on the most impactful remaining issues: Accuracy concerns, Completeness gaps, cognitive distortions, and harm risks. This is the Defendant's last chance to improve before the Judge's verdict. Cite all sources inline using [Source Name](URL) format.`,
+          prompt: `Review the Defendant's rebuttal and deliver your final challenge. The debate is about the accuracy of the initial response below.\n\n## Defendant's Initial Response (the original response under debate):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nFor your final challenge:\n1. **Re-examine the Defendant's sources**: Did the Defendant provide new sources in their rebuttal? Verify each one. Do they actually support the claim? Are they credible?\n2. **Check corrections**: If the Defendant corrected any claims, verify the corrections are accurate.\n3. **Identify what remains unresolved**: Which of your original challenges did the Defendant fail to adequately address?\n4. **Flag any scope creep**: If the Defendant introduced new topics or claims not in the original response, flag this as evasion.\n\nDo NOT concede. Push on every remaining weakness. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
             google_search: google.tools.googleSearch({}),
           },
@@ -254,11 +261,10 @@ export const run = internalAction({
         streamText({
           model: openai.responses("gpt-5.4"),
           system: DEFENDANT_SYSTEM,
-          prompt: `Review the Prosecutor's final challenge and provide your final rebuttal.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nThis is your FINAL response — it will be shown to the user as the output and evaluated by the Judge. Make it the best possible answer to the original prompt. Address all remaining critiques. Correct any Accuracy issues. Fill all Completeness gaps. Ensure proper uncertainty disclosure. Cite all sources inline using [Source Name](URL) format.`,
+          prompt: `The Prosecutor has delivered their final challenge. Provide your final defense of your initial response.\n\n## Your Initial Response (the response under debate):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nIMPORTANT: Stay focused on the claims in your initial response that the Prosecutor challenged. For each challenge:\n- If the Prosecutor questions a source: verify that source's credibility and provide corroborating evidence from other sources.\n- If the Prosecutor disputes a factual claim: search the web for additional evidence supporting or correcting that specific claim.\n- If the Prosecutor identifies a genuine error: correct ONLY that specific claim. Do not add new topics.\n- Do NOT expand the scope of your response. Do NOT introduce new arguments or information beyond what is needed to address the Prosecutor's specific challenges.\n\nCite all sources inline using [Source Name](URL) format.`,
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
-          temperature: 0.5,
         }),
         ctx,
         debateId,
@@ -268,17 +274,17 @@ export const run = internalAction({
         debateCtx,
       );
 
-      // Step 7: Judge verdict (evaluation per Constitution)
+      // Step 7: Judge verdict + final output
       if (await isStopped(ctx, debateId)) return;
       // Find the defendant's final response for evaluation
       const defendantMessages = debateCtx.transcript.filter((t) => t.startsWith("[DEFENDANT"));
-      const finalResponse = defendantMessages[defendantMessages.length - 1] ?? "";
+      const finalDefendantResponse = defendantMessages[defendantMessages.length - 1] ?? "";
 
       const verdictText = await collectAndStream(
         streamText({
           model: anthropic("claude-opus-4-6"),
           system: JUDGE_SYSTEM,
-          prompt: `The proceedings are complete. Evaluate the Defendant's final response and render your verdict per the Constitution.\n\nOriginal prompt: "${debate.text}"\n\n## Defendant's Final Response:\n${finalResponse}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nRender your verdict following the Constitution strictly:\n1. Claim Decomposition (Article 1)\n2. Information Quality scoring (Article 2)\n3. Cognitive Distortion Assessment (Article 3)\n4. Trust Components: Ability, Integrity, Benevolence, Harm Risk (Article 4)\n5. Overall Trustworthiness (Article 5)\n6. Verdict: Acceptable, Qualified, or Rejected (Article 6)\n7. Explicit Justification (Article 7)\n\nREMEMBER: You must NOT introduce new information, generate claims, or revise the response (Article 8).`,
+          prompt: `The proceedings are complete. Evaluate the Defendant's response, render your verdict, and produce the final authoritative output for the user.\n\nOriginal prompt: "${debate.text}"\n\n## Defendant's Final Response:\n${finalDefendantResponse}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nYour response MUST contain two clearly separated sections:\n\n## SECTION 1: Judicial Verdict\nRender your verdict following the Constitution strictly:\n1. Claim Decomposition (Article 1)\n2. Information Quality scoring (Article 2)\n3. Cognitive Distortion Assessment (Article 3)\n4. Trust Components: Ability, Integrity, Benevolence, Harm Risk (Article 4)\n5. Overall Trustworthiness (Article 5)\n6. Verdict: Acceptable, Qualified, or Rejected (Article 6)\n7. Explicit Justification (Article 7)\n\n## SECTION 2: Final Output\nBased on your verdict and the full proceedings, produce the definitive, refined response to the user's original prompt: "${debate.text}"\n\n- If the verdict is **Acceptable**: reproduce the Defendant's response with minor editorial improvements.\n- If the verdict is **Qualified**: revise the Defendant's response to correct the specific deficiencies identified in your verdict. Remove or fix inaccurate claims, add appropriate uncertainty markers, and strengthen weak sourcing.\n- If the verdict is **Rejected**: rewrite the response from scratch based on the verified facts that emerged during the proceedings. Clearly mark areas of remaining uncertainty.\n\nThe Final Output should be a complete, standalone response to the user's prompt — not a summary of the proceedings. It should read as if it is the only thing the user will see. Cite sources inline using [Source Name](URL) format.`,
           temperature: 0.3,
         }),
         ctx,
@@ -289,13 +295,7 @@ export const run = internalAction({
         debateCtx,
       );
 
-      // Store final output (the defendant's last rebuttal)
-      const lastDefendantMsg = debateCtx.transcript
-        .filter((t) => t.startsWith("[DEFENDANT"))
-        .pop();
-      const finalOutput = lastDefendantMsg
-        ? lastDefendantMsg.replace(/^\[DEFENDANT - \w+\]: /, "")
-        : verdictText;
+      const finalOutput = verdictText;
 
       await ctx.runMutation(internal.debates.setFinalOutput, {
         debateId,
