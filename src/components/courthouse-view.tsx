@@ -36,7 +36,7 @@ export function CourthouseView({
   const verdictMessage = messages.find((m) => m.type === "verdict");
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col min-h-screen">
       {/* Case header */}
       <motion.header
         className="border-b border-burgundy/10 bg-surface/50 backdrop-blur-sm sticky top-0 z-40"

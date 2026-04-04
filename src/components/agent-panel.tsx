@@ -97,12 +97,7 @@ function MessageCard({
 
   useEffect(() => {
     if (!isLatest || !scrollRef.current) return;
-    const viewport = scrollRef.current.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msg.content, isLatest]);
 
   return (
@@ -131,14 +126,15 @@ function MessageCard({
           {MESSAGE_LABELS[msg.type] ?? msg.type}
         </span>
       </div>
-      <div ref={scrollRef}>
-        <ScrollArea className="max-h-[280px]">
-          <div className="px-4 py-3">
-            <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
-              <ReactMarkdown components={linkComponents}>{msg.content}</ReactMarkdown>
-            </div>
+      <div
+        ref={scrollRef}
+        className="max-h-[280px] overflow-y-auto"
+      >
+        <div className="px-4 py-3">
+          <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
+            <ReactMarkdown components={linkComponents}>{msg.content}</ReactMarkdown>
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </motion.div>
   );
@@ -156,12 +152,7 @@ function StreamingCard({
 
   useEffect(() => {
     if (!scrollRef.current) return;
-    const viewport = scrollRef.current.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    );
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
-    }
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [content]);
 
   return (
@@ -197,15 +188,16 @@ function StreamingCard({
           )}
         />
       </div>
-      <div ref={scrollRef}>
-        <ScrollArea className="max-h-[280px]">
-          <div className="px-4 py-3">
-            <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
-              <ReactMarkdown components={linkComponents}>{content}</ReactMarkdown>
-              <span className="inline-block w-0.5 h-4 bg-burgundy/50 animate-pulse ml-0.5 align-text-bottom" />
-            </div>
+      <div
+        ref={scrollRef}
+        className="max-h-[280px] overflow-y-auto"
+      >
+        <div className="px-4 py-3">
+          <div className="text-sm text-foreground/80 leading-relaxed prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
+            <ReactMarkdown components={linkComponents}>{content}</ReactMarkdown>
+            <span className="inline-block w-0.5 h-4 bg-burgundy/50 animate-pulse ml-0.5 align-text-bottom" />
           </div>
-        </ScrollArea>
+        </div>
       </div>
     </motion.div>
   );
