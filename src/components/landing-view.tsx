@@ -23,22 +23,22 @@ const agentCards: {
   iconColor: string;
 }[] = [
   {
-    role: "prosecutor",
-    icon: Swords,
-    borderColor: "border-prosecutor/20",
-    iconColor: "text-prosecutor",
-  },
-  {
-    role: "judge",
-    icon: Scale,
-    borderColor: "border-burgundy/20",
-    iconColor: "text-burgundy",
-  },
-  {
     role: "defendant",
     icon: Shield,
     borderColor: "border-defendant/20",
     iconColor: "text-defendant",
+  },
+  {
+    role: "judge",
+    icon: Scale,
+    borderColor: "border-court/20",
+    iconColor: "text-court",
+  },
+  {
+    role: "prosecutor",
+    icon: Swords,
+    borderColor: "border-prosecutor/20",
+    iconColor: "text-prosecutor",
   },
 ];
 
