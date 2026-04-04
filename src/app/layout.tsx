@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { EB_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { ConvexClientProvider } from "@/components/convex-client-provider";
 import "./globals.css";
 
 const ebGaramond = EB_Garamond({
@@ -48,7 +49,7 @@ export default function RootLayout({
           </filter>
           <rect width="100%" height="100%" filter="url(#grain-filter)" />
         </svg>
-        {children}
+        <ConvexClientProvider>{children}</ConvexClientProvider>
       </body>
     </html>
   );

@@ -13,6 +13,7 @@ interface CourthouseViewProps {
   activeAgent: AgentRole | null;
   phase: TribunalPhase;
   onReset: () => void;
+  streamingText?: Record<string, string>;
 }
 
 export function CourthouseView({
@@ -21,6 +22,7 @@ export function CourthouseView({
   activeAgent,
   phase,
   onReset,
+  streamingText = {},
 }: CourthouseViewProps) {
   const prosecutorMessages = messages.filter((m) => m.agent === "prosecutor");
   const advocateMessages = messages.filter((m) => m.agent === "advocate");
@@ -113,6 +115,7 @@ export function CourthouseView({
             messages={judgeMessages}
             isActive={activeAgent === "judge"}
             variant="horizontal"
+            streamingContent={activeAgent === "judge" ? Object.values(streamingText)[0] : undefined}
           />
         </motion.div>
 
@@ -129,6 +132,7 @@ export function CourthouseView({
               messages={prosecutorMessages}
               isActive={activeAgent === "prosecutor"}
               variant="vertical"
+              streamingContent={activeAgent === "prosecutor" ? Object.values(streamingText)[0] : undefined}
             />
           </motion.div>
           <motion.div
@@ -142,6 +146,7 @@ export function CourthouseView({
               messages={advocateMessages}
               isActive={activeAgent === "advocate"}
               variant="vertical"
+              streamingContent={activeAgent === "advocate" ? Object.values(streamingText)[0] : undefined}
             />
           </motion.div>
         </div>

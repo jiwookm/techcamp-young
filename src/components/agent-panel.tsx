@@ -13,6 +13,7 @@ interface AgentPanelProps {
   messages: DebateMessage[];
   isActive: boolean;
   variant: "horizontal" | "vertical";
+  streamingContent?: string;
 }
 
 const ROLE_STYLES: Record<
@@ -73,6 +74,7 @@ export function AgentPanel({
   messages,
   isActive,
   variant,
+  streamingContent,
 }: AgentPanelProps) {
   const config = AGENT_CONFIGS[role];
   const styles = ROLE_STYLES[role];
@@ -86,7 +88,7 @@ export function AgentPanel({
     if (viewport) {
       viewport.scrollTop = viewport.scrollHeight;
     }
-  }, [messages.length, isActive]);
+  }, [messages.length, isActive, streamingContent]);
 
   return (
     <div
@@ -159,7 +161,22 @@ export function AgentPanel({
                 </p>
               </motion.div>
             ))}
-            {isActive && <TypingIndicator role={role} />}
+            {isActive && streamingContent && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">
+                  speaking
+                </span>
+                <p className="text-sm text-foreground/80 leading-relaxed mt-1">
+                  {streamingContent}
+                  <span className="inline-block w-0.5 h-4 bg-foreground/50 animate-pulse ml-0.5 align-text-bottom" />
+                </p>
+              </motion.div>
+            )}
+            {isActive && !streamingContent && <TypingIndicator role={role} />}
           </div>
         </ScrollArea>
       </div>

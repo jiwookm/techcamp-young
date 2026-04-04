@@ -28,6 +28,54 @@ export interface AgentConfig {
   colorClass: string;
 }
 
+// --- Debate system types ---
+
+export interface SubClaim {
+  id: string;
+  text: string;
+  category: "factual" | "statistical" | "causal" | "predictive" | "opinion";
+}
+
+export interface Evidence {
+  id: string;
+  subClaimId: string;
+  source: string;
+  url?: string;
+  snippet: string;
+  supports: boolean;
+  reliability: "high" | "medium" | "low";
+}
+
+export interface VerdictResult {
+  overallRating:
+    | "verified"
+    | "mostly_true"
+    | "mixed"
+    | "mostly_false"
+    | "false"
+    | "unverifiable";
+  confidence: number;
+  summary: string;
+  subClaimResults: Array<{
+    subClaimId: string;
+    rating: string;
+    reasoning: string;
+  }>;
+  recommendedRevision?: string;
+}
+
+export interface DebateState {
+  id: string;
+  originalText: string;
+  subClaims: SubClaim[];
+  evidence: Evidence[];
+  messages: DebateMessage[];
+  phase: TribunalPhase;
+  verdict?: VerdictResult;
+}
+
+// --- Agent configs ---
+
 export const AGENT_CONFIGS: Record<AgentRole, AgentConfig> = {
   prosecutor: {
     role: "prosecutor",
