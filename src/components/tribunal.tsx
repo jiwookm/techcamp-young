@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -12,6 +12,7 @@ import { CourthouseView } from "./courthouse-view";
 export function Tribunal() {
   const [prompt, setPrompt] = useState("");
   const [debateId, setDebateId] = useState<Id<"debates"> | null>(null);
+  const courthouseRef = useRef<HTMLDivElement>(null);
 
   const startDebateMutation = useMutation(api.debates.startDebate);
 
@@ -50,47 +51,44 @@ export function Tribunal() {
     setDebateId(id);
   }, [prompt, startDebateMutation]);
 
+  // Auto-scroll to courthouse when debate starts
+  useEffect(() => {
+    if (phase !== "landing" && courthouseRef.current) {
+      courthouseRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [phase]);
+
   function handleReset() {
     setPrompt("");
     setDebateId(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   return (
-    <div className="relative min-h-screen">
-      <AnimatePresence mode="wait">
-        {phase === "landing" ? (
-          <motion.div
-            key="landing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.5 }}
-          >
-            <LandingView
-              prompt={prompt}
-              onPromptChange={setPrompt}
-              onSubmit={handleSubmit}
-            />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="courthouse"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
-            <CourthouseView
-              prompt={prompt}
-              messages={messages}
-              activeAgent={activeAgent}
-              phase={phase}
-              onReset={handleReset}
-              streamingText={streamingText}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="relative">
+      <LandingView
+        prompt={prompt}
+        onPromptChange={setPrompt}
+        onSubmit={handleSubmit}
+      />
+
+      {phase !== "landing" && (
+        <motion.div
+          ref={courthouseRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          <CourthouseView
+            prompt={prompt}
+            messages={messages}
+            activeAgent={activeAgent}
+            phase={phase}
+            onReset={handleReset}
+            streamingText={streamingText}
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
