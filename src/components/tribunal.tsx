@@ -15,6 +15,7 @@ export function Tribunal() {
   const courthouseRef = useRef<HTMLDivElement>(null);
 
   const startDebateMutation = useMutation(api.debates.startDebate);
+  const stopDebateMutation = useMutation(api.debates.stopDebate);
 
   const debate = useQuery(
     api.debates.getDebate,
@@ -51,6 +52,11 @@ export function Tribunal() {
     setDebateId(id);
   }, [prompt, startDebateMutation]);
 
+  const handleStop = useCallback(async () => {
+    if (!debateId) return;
+    await stopDebateMutation({ debateId });
+  }, [debateId, stopDebateMutation]);
+
   // Auto-scroll to courthouse when debate starts
   useEffect(() => {
     if (phase !== "landing" && courthouseRef.current) {
@@ -63,6 +69,8 @@ export function Tribunal() {
     setDebateId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  const isGenerating = phase === "convening" || phase === "debating";
 
   return (
     <div className="relative">
@@ -85,6 +93,8 @@ export function Tribunal() {
             activeAgent={activeAgent}
             phase={phase}
             onReset={handleReset}
+            onStop={handleStop}
+            isGenerating={isGenerating}
             streamingText={streamingText}
           />
         </motion.div>

@@ -22,6 +22,19 @@ export const startDebate = mutation({
   },
 });
 
+export const stopDebate = mutation({
+  args: { debateId: v.id("debates") },
+  handler: async (ctx, { debateId }) => {
+    const debate = await ctx.db.get(debateId);
+    if (!debate || debate.phase === "verdict") return;
+    await ctx.db.patch(debateId, {
+      phase: "verdict",
+      activeAgent: undefined,
+      streamingText: undefined,
+    });
+  },
+});
+
 // --- Public queries (subscribed from client) ---
 
 export const getDebate = query({

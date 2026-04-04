@@ -36,7 +36,7 @@ export function streamInitialResponse(state: DebateState) {
 Prior proceedings:
 ${transcript}
 
-Generate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format.`,
+Generate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format. Keep your response under 500 words.`,
     tools: {
       web_search_preview: openai.tools.webSearchPreview({}),
     },
