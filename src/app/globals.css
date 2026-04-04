@@ -34,61 +34,40 @@
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
 
-  /* Tribunal custom colors */
-  --color-gold: #c8a55a;
-  --color-gold-light: #e2cc8a;
-  --color-gold-dim: #6b5c35;
-  --color-prosecutor: #b83c3c;
-  --color-prosecutor-light: #dc5858;
-  --color-prosecutor-dim: #7a2828;
-  --color-defendant: #3c6eb8;
-  --color-defendant-light: #5888dc;
-  --color-defendant-dim: #284878;
-  --color-surface: #0f0f12;
-  --color-surface-elevated: #161619;
+  /* Tribunal custom colors — warm burgundy palette */
+  --color-burgundy: #8b3a3a;
+  --color-burgundy-light: #a85454;
+  --color-burgundy-dim: #6b2a2a;
+  --color-prosecutor: #943b3b;
+  --color-prosecutor-light: #b05252;
+  --color-prosecutor-dim: #6e2c2c;
+  --color-defendant: #5a7a7a;
+  --color-defendant-light: #6e9494;
+  --color-defendant-dim: #3e5858;
+  --color-surface: #d8cfc2;
+  --color-surface-elevated: #e2d9cc;
 }
 
 :root {
-  --background: #08080a;
-  --foreground: #e8e4da;
-  --card: #0f0f12;
-  --card-foreground: #e8e4da;
-  --popover: #0f0f12;
-  --popover-foreground: #e8e4da;
-  --primary: #c8a55a;
-  --primary-foreground: #08080a;
-  --secondary: #161619;
-  --secondary-foreground: #e8e4da;
-  --muted: #161619;
-  --muted-foreground: #7a7668;
-  --accent: #1c1c20;
-  --accent-foreground: #e8e4da;
-  --destructive: #b83c3c;
-  --border: #1e1e24;
-  --input: #141418;
-  --ring: #c8a55a;
+  --background: #ddd5c8;
+  --foreground: #2a1f1f;
+  --card: #d4cabc;
+  --card-foreground: #2a1f1f;
+  --popover: #d4cabc;
+  --popover-foreground: #2a1f1f;
+  --primary: #8b3a3a;
+  --primary-foreground: #ede6db;
+  --secondary: #cec4b5;
+  --secondary-foreground: #2a1f1f;
+  --muted: #cec4b5;
+  --muted-foreground: #7a6b5e;
+  --accent: #c8bdae;
+  --accent-foreground: #2a1f1f;
+  --destructive: #943b3b;
+  --border: #bfb5a5;
+  --input: #d0c6b7;
+  --ring: #8b3a3a;
   --radius: 0.625rem;
-}
-
-.dark {
-  --background: #08080a;
-  --foreground: #e8e4da;
-  --card: #0f0f12;
-  --card-foreground: #e8e4da;
-  --popover: #0f0f12;
-  --popover-foreground: #e8e4da;
-  --primary: #c8a55a;
-  --primary-foreground: #08080a;
-  --secondary: #161619;
-  --secondary-foreground: #e8e4da;
-  --muted: #161619;
-  --muted-foreground: #7a7668;
-  --accent: #1c1c20;
-  --accent-foreground: #e8e4da;
-  --destructive: #b83c3c;
-  --border: #1e1e24;
-  --input: #141418;
-  --ring: #c8a55a;
 }
 
 @layer base {
@@ -111,11 +90,11 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a32;
+  background: #b8ad9d;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a3a44;
+  background: #a89d8d;
 }
 
 /* Grain texture overlay */
@@ -124,30 +103,30 @@
   inset: 0;
   pointer-events: none;
   z-index: 50;
-  opacity: 0.022;
-  mix-blend-mode: overlay;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
 }
 
-/* Background gradient */
+/* Background — warm parchment */
 .bg-tribunal {
-  background: radial-gradient(ellipse at 50% 30%, rgba(200, 165, 90, 0.025) 0%, transparent 70%),
-              #08080a;
+  background: radial-gradient(ellipse at 50% 0%, rgba(139, 58, 58, 0.03) 0%, transparent 60%),
+              #ddd5c8;
 }
 
-/* Gold glow effects */
-.gold-glow {
-  box-shadow: 0 0 20px rgba(200, 165, 90, 0.08), 0 0 60px rgba(200, 165, 90, 0.04);
+/* Burgundy glow effects */
+.burgundy-glow {
+  box-shadow: 0 0 20px rgba(139, 58, 58, 0.06), 0 0 60px rgba(139, 58, 58, 0.03);
 }
-.gold-glow-strong {
-  box-shadow: 0 0 30px rgba(200, 165, 90, 0.15), 0 0 80px rgba(200, 165, 90, 0.06);
+.burgundy-glow-strong {
+  box-shadow: 0 0 30px rgba(139, 58, 58, 0.1), 0 0 80px rgba(139, 58, 58, 0.04);
 }
 
 /* Agent glows */
 .prosecutor-glow {
-  box-shadow: 0 0 20px rgba(184, 60, 60, 0.08), 0 0 60px rgba(184, 60, 60, 0.04);
+  box-shadow: 0 0 20px rgba(148, 59, 59, 0.06), 0 0 60px rgba(148, 59, 59, 0.03);
 }
 .defendant-glow {
-  box-shadow: 0 0 20px rgba(60, 110, 184, 0.08), 0 0 60px rgba(60, 110, 184, 0.04);
+  box-shadow: 0 0 20px rgba(90, 122, 122, 0.06), 0 0 60px rgba(90, 122, 122, 0.03);
 }
 
 /* Focus glow for textarea */
@@ -155,8 +134,8 @@
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 .textarea-tribunal:focus-within {
-  border-color: rgba(200, 165, 90, 0.35);
-  box-shadow: 0 0 0 1px rgba(200, 165, 90, 0.08), 0 0 24px rgba(200, 165, 90, 0.04);
+  border-color: rgba(139, 58, 58, 0.35);
+  box-shadow: 0 0 0 1px rgba(139, 58, 58, 0.08), 0 0 24px rgba(139, 58, 58, 0.04);
 }
 
 /* Typing indicator dots */

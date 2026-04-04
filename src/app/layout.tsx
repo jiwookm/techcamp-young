@@ -35,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${ebGaramond.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`${ebGaramond.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-tribunal antialiased">
         <svg className="grain-overlay" width="100%" height="100%">

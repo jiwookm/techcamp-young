@@ -35,33 +35,28 @@ export function CourthouseView({
   );
   const verdictMessage = messages.find((m) => m.type === "verdict");
 
-  // The defendant's final rebuttal is the actual output
-  const defendantFinalResponse = [...defendantMessages].reverse().find(
-    (m) => m.type === "rebuttal",
-  );
-
   return (
     <div className="flex flex-col">
       {/* Case header */}
       <motion.header
-        className="border-b border-border/50 bg-card/30 backdrop-blur-sm sticky top-0 z-40"
+        className="border-b border-burgundy/10 bg-surface/50 backdrop-blur-sm sticky top-0 z-40"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.3 }}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
-            <Scale className="w-5 h-5 text-gold/50 shrink-0" strokeWidth={1.5} />
+            <Scale className="w-5 h-5 text-burgundy/40 shrink-0" strokeWidth={1.5} />
             <div className="min-w-0">
               <div className="flex items-center gap-3">
-                <span className="font-serif text-sm tracking-wider text-gold/70">
+                <span className="font-serif text-sm tracking-wider text-burgundy/60">
                   CASE No. TRB-2024-0847
                 </span>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border ${
                     phase === "verdict"
-                      ? "border-gold/25 text-gold bg-gold/5"
-                      : "border-prosecutor/25 text-prosecutor-light bg-prosecutor/5"
+                      ? "border-burgundy/25 text-burgundy bg-burgundy/5"
+                      : "border-prosecutor/25 text-prosecutor bg-prosecutor/5"
                   }`}
                 >
                   {phase === "verdict" ? "CONCLUDED" : "IN SESSION"}
@@ -111,10 +106,10 @@ export function CourthouseView({
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Scale
-              className="w-10 h-10 text-gold/30 mx-auto mb-4"
+              className="w-10 h-10 text-burgundy/30 mx-auto mb-4"
               strokeWidth={1}
             />
-            <p className="font-serif text-xl tracking-[0.15em] text-gold/50">
+            <p className="font-serif text-xl tracking-[0.15em] text-burgundy/50">
               Convening Tribunal...
             </p>
           </motion.div>
@@ -172,22 +167,12 @@ export function CourthouseView({
           </motion.div>
         </div>
 
-        {/* Final Response (Defendant's refined output) */}
-        {defendantFinalResponse && phase === "verdict" && (
-          <VerdictPanel
-            message={defendantFinalResponse}
-            variant="response"
-          />
-        )}
-
-        {/* Judicial Verdict */}
+        {/* Judicial Verdict & Final Output */}
         {verdictMessage && (
-          <div className="mt-5">
-            <VerdictPanel
-              message={verdictMessage}
-              variant="verdict"
-            />
-          </div>
+          <VerdictPanel
+            message={verdictMessage}
+            variant="verdict"
+          />
         )}
       </div>
     </div>

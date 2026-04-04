@@ -59,6 +59,6 @@ export const AGENT_CONFIGS: Record<AgentRole, AgentConfig> = {
     name: "Judge",
     title: "THE COURT",
     description: "Evaluates the response for trustworthiness under the Constitution",
-    colorClass: "gold",
+    colorClass: "burgundy",
   },
 };

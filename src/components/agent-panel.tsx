@@ -45,12 +45,12 @@ const ROLE_STYLES: Record<
     glowClass: "defendant-glow",
   },
   judge: {
-    border: "border-gold/12",
-    activeBorder: "border-gold/35",
-    headerBg: "bg-gold/5",
-    dot: "bg-gold",
-    textColor: "text-gold",
-    glowClass: "gold-glow",
+    border: "border-burgundy/12",
+    activeBorder: "border-burgundy/35",
+    headerBg: "bg-burgundy/5",
+    dot: "bg-burgundy",
+    textColor: "text-burgundy",
+    glowClass: "burgundy-glow",
   },
 };
 
@@ -94,7 +94,7 @@ export function AgentPanel({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card/40 backdrop-blur-sm transition-all duration-500",
+        "rounded-xl border bg-surface-elevated/50 backdrop-blur-sm transition-all duration-500",
         isActive ? styles.activeBorder : styles.border,
         isActive && styles.glowClass,
       )}
@@ -143,7 +143,7 @@ export function AgentPanel({
         >
           <div className="p-4 space-y-4">
             {messages.length === 0 && !isActive && (
-              <p className="text-sm text-muted-foreground/25 italic text-center py-8">
+              <p className="text-sm text-muted-foreground/35 italic text-center py-8 font-serif">
                 Awaiting proceedings...
               </p>
             )}
@@ -154,10 +154,10 @@ export function AgentPanel({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-medium">
                   {msg.type}
                 </span>
-                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm prose-invert max-w-none prose-p:my-1 prose-a:text-blue-400 prose-strong:text-foreground/90">
+                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
               </motion.div>
@@ -168,12 +168,12 @@ export function AgentPanel({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/50 font-medium">
                   speaking
                 </span>
-                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm prose-invert max-w-none prose-p:my-1 prose-a:text-blue-400 prose-strong:text-foreground/90">
+                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm max-w-none prose-p:my-1 prose-a:text-burgundy prose-strong:text-foreground/90">
                   <ReactMarkdown>{streamingContent}</ReactMarkdown>
-                  <span className="inline-block w-0.5 h-4 bg-foreground/50 animate-pulse ml-0.5 align-text-bottom" />
+                  <span className="inline-block w-0.5 h-4 bg-burgundy/50 animate-pulse ml-0.5 align-text-bottom" />
                 </div>
               </motion.div>
             )}
