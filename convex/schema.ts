@@ -7,6 +7,8 @@ export default defineSchema({
     phase: v.string(),
     activeAgent: v.optional(v.string()),
     streamingText: v.optional(v.string()),
+    finalOutput: v.optional(v.string()),
+    // Legacy fields kept optional for backwards compatibility with old data
     subClaims: v.optional(
       v.array(
         v.object({

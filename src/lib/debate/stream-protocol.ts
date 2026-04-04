@@ -2,9 +2,6 @@ import type {
   AgentRole,
   MessageType,
   TribunalPhase,
-  SubClaim,
-  Evidence,
-  VerdictResult,
 } from "@/lib/types";
 
 export type DebateStreamEvent =
@@ -23,9 +20,6 @@ export type DebateStreamEvent =
       fullContent: string;
       messageType: MessageType;
     }
-  | { type: "sub-claims"; claims: SubClaim[] }
-  | { type: "evidence"; evidence: Evidence }
-  | { type: "verdict"; result: VerdictResult }
   | { type: "error"; message: string }
   | { type: "done" };
 

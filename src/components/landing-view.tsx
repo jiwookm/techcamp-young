@@ -13,7 +13,7 @@ interface LandingViewProps {
 }
 
 const EXAMPLE_PROMPT =
-  "AI will replace 80% of jobs within the next decade, according to recent studies.";
+  "Write a comprehensive analysis of how renewable energy adoption is affecting global economics and geopolitics.";
 
 const agentCards: {
   role: AgentRole;
@@ -34,10 +34,10 @@ const agentCards: {
     iconColor: "text-gold",
   },
   {
-    role: "advocate",
+    role: "defendant",
     icon: Shield,
-    borderColor: "border-advocate/20",
-    iconColor: "text-advocate",
+    borderColor: "border-defendant/20",
+    iconColor: "text-defendant",
   },
 ];
 
@@ -76,7 +76,7 @@ export function LandingView({
         </h1>
 
         <p className="text-muted-foreground text-lg mb-10 tracking-wide">
-          Adversarial Due Process for AI Outputs
+          Adversarial Thinking for Better AI Outputs
         </p>
 
         <div className="w-16 h-px bg-gold/25 mb-12" />
@@ -94,7 +94,7 @@ export function LandingView({
             value={prompt}
             onChange={(e) => onPromptChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Submit AI-generated text for adversarial review..."
+            placeholder="Enter any prompt for adversarial refinement..."
             className="min-h-[140px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground/40 resize-none focus-visible:ring-0 text-base leading-relaxed p-4"
           />
           <div className="flex items-center justify-between px-3 pb-3">
@@ -160,7 +160,7 @@ export function LandingView({
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1 }}
       >
-        Three agents &middot; One constitution &middot; Full transparency
+        Three agents &middot; One constitution &middot; Refined output
       </motion.p>
     </div>
   );

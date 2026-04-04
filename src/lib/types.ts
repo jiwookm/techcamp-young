@@ -1,13 +1,10 @@
-export type AgentRole = "prosecutor" | "advocate" | "judge";
+export type AgentRole = "prosecutor" | "defendant" | "judge";
 
 export type MessageType =
   | "opening"
-  | "argument"
-  | "counter"
-  | "evidence"
-  | "objection"
-  | "interjection"
-  | "closing"
+  | "response"
+  | "challenge"
+  | "rebuttal"
   | "verdict";
 
 export interface DebateMessage {
@@ -30,48 +27,12 @@ export interface AgentConfig {
 
 // --- Debate system types ---
 
-export interface SubClaim {
-  id: string;
-  text: string;
-  category: "factual" | "statistical" | "causal" | "predictive" | "opinion";
-}
-
-export interface Evidence {
-  id: string;
-  subClaimId: string;
-  source: string;
-  url?: string;
-  snippet: string;
-  supports: boolean;
-  reliability: "high" | "medium" | "low";
-}
-
-export interface VerdictResult {
-  overallRating:
-    | "verified"
-    | "mostly_true"
-    | "mixed"
-    | "mostly_false"
-    | "false"
-    | "unverifiable";
-  confidence: number;
-  summary: string;
-  subClaimResults: Array<{
-    subClaimId: string;
-    rating: string;
-    reasoning: string;
-  }>;
-  recommendedRevision?: string;
-}
-
 export interface DebateState {
   id: string;
   originalText: string;
-  subClaims: SubClaim[];
-  evidence: Evidence[];
   messages: DebateMessage[];
   phase: TribunalPhase;
-  verdict?: VerdictResult;
+  finalOutput?: string;
 }
 
 // --- Agent configs ---
@@ -82,22 +43,22 @@ export const AGENT_CONFIGS: Record<AgentRole, AgentConfig> = {
     name: "Prosecutor",
     title: "THE PROSECUTION",
     description:
-      "Hunts for unsupported claims, contradictions, and unsubstantiated assertions",
+      "Challenges the response for accuracy, completeness, and quality",
     colorClass: "prosecutor",
   },
-  advocate: {
-    role: "advocate",
-    name: "Advocate",
-    title: "THE DEFENSE",
+  defendant: {
+    role: "defendant",
+    name: "Defendant",
+    title: "THE DEFENDANT",
     description:
-      "Defends substantiated arguments with corroborating evidence",
-    colorClass: "advocate",
+      "Generates and defends the response through adversarial refinement",
+    colorClass: "defendant",
   },
   judge: {
     role: "judge",
     name: "Judge",
     title: "THE COURT",
-    description: "Rules under your constitution with full transparency",
+    description: "Evaluates the response for trustworthiness under the Constitution",
     colorClass: "gold",
   },
 };

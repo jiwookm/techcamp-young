@@ -1,8 +1,8 @@
 import type { DebateMessage, DebateState, AgentRole, MessageType } from "@/lib/types";
 import type { DebateStreamEvent } from "./stream-protocol";
-import { decomposeClaims, streamOpening, streamInterjection, generateVerdict, streamVerdictText } from "./agents/judge";
-import { streamChallenge, streamRebuttal } from "./agents/prosecutor";
-import { streamDefense, streamClosing } from "./agents/advocate";
+import { streamOpening, streamVerdict } from "./agents/judge";
+import { streamChallenge, streamSecondChallenge } from "./agents/prosecutor";
+import { streamInitialResponse, streamRebuttal } from "./agents/defendant";
 
 type Emit = (event: DebateStreamEvent) => void;
 
@@ -59,8 +59,6 @@ export async function orchestrateDebate(
   const state: DebateState = {
     id: `trb-${Date.now().toString(36)}`,
     originalText: text,
-    subClaims: [],
-    evidence: [],
     messages: [],
     phase: "convening",
   };
@@ -72,66 +70,57 @@ export async function orchestrateDebate(
   // Phase: Debating
   emit({ type: "phase-change", phase: "debating" });
 
-  // Step 1: Judge decomposes claims
-  const subClaims = await decomposeClaims(text);
-  state.subClaims = subClaims;
-  emit({ type: "sub-claims", claims: subClaims });
-
-  // Step 2: Judge opening statement
+  // Step 1: Judge opening (brief, no constitution)
   await collectStream(streamOpening(state), "judge", "opening", state, emit);
 
-  // Step 3: Prosecutor challenge (Gemini + Google Search)
+  // Step 2: Defendant initial response
+  await collectStream(
+    streamInitialResponse(state),
+    "defendant",
+    "response",
+    state,
+    emit,
+  );
+
+  // Step 3: Prosecutor challenge #1
   await collectStream(
     streamChallenge(state),
     "prosecutor",
-    "argument",
+    "challenge",
     state,
     emit,
   );
 
-  // Step 4: Advocate defense (GPT-4o + Web Search)
-  await collectStream(
-    streamDefense(state),
-    "advocate",
-    "counter",
-    state,
-    emit,
-  );
-
-  // Step 5: Judge interjection
-  await collectStream(
-    streamInterjection(state),
-    "judge",
-    "interjection",
-    state,
-    emit,
-  );
-
-  // Step 6: Prosecutor rebuttal
+  // Step 4: Defendant rebuttal #1
   await collectStream(
     streamRebuttal(state),
+    "defendant",
+    "rebuttal",
+    state,
+    emit,
+  );
+
+  // Step 5: Prosecutor challenge #2
+  await collectStream(
+    streamSecondChallenge(state),
     "prosecutor",
-    "closing",
+    "challenge",
     state,
     emit,
   );
 
-  // Step 7: Advocate closing
+  // Step 6: Defendant rebuttal #2 (this IS the final output)
   await collectStream(
-    streamClosing(state),
-    "advocate",
-    "closing",
+    streamRebuttal(state),
+    "defendant",
+    "rebuttal",
     state,
     emit,
   );
 
-  // Step 8: Judge verdict (structured + text)
-  const verdictResult = await generateVerdict(state);
-  state.verdict = verdictResult;
-  emit({ type: "verdict", result: verdictResult });
-
+  // Step 7: Judge verdict (evaluation per Constitution)
   await collectStream(
-    streamVerdictText(state, verdictResult),
+    streamVerdict(state),
     "judge",
     "verdict",
     state,

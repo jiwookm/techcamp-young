@@ -70,41 +70,13 @@ export const setStreamingText = internalMutation({
   },
 });
 
-export const setSubClaims = internalMutation({
+export const setFinalOutput = internalMutation({
   args: {
     debateId: v.id("debates"),
-    subClaims: v.array(
-      v.object({
-        id: v.string(),
-        text: v.string(),
-        category: v.string(),
-      }),
-    ),
+    finalOutput: v.string(),
   },
-  handler: async (ctx, { debateId, subClaims }) => {
-    await ctx.db.patch(debateId, { subClaims });
-  },
-});
-
-export const setVerdict = internalMutation({
-  args: {
-    debateId: v.id("debates"),
-    verdict: v.object({
-      overallRating: v.string(),
-      confidence: v.number(),
-      summary: v.string(),
-      subClaimResults: v.array(
-        v.object({
-          subClaimId: v.string(),
-          rating: v.string(),
-          reasoning: v.string(),
-        }),
-      ),
-      recommendedRevision: v.optional(v.string()),
-    }),
-  },
-  handler: async (ctx, { debateId, verdict }) => {
-    await ctx.db.patch(debateId, { verdict });
+  handler: async (ctx, { debateId, finalOutput }) => {
+    await ctx.db.patch(debateId, { finalOutput });
   },
 });
 
