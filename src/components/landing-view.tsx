@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { Scale, Swords, Shield, ArrowRight } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { AGENT_CONFIGS, AgentRole } from "@/lib/types";
+import { ConstitutionDialog } from "@/components/constitution-dialog";
 import Image from "next/image";
 
 interface LandingViewProps {
@@ -94,8 +95,12 @@ export function LandingView({
 
         <div className="w-24 h-px bg-burgundy/20 mb-6" />
 
-        <p className="text-burgundy/50 text-lg mb-14 tracking-wide font-serif italic">
+        <p className="text-burgundy/50 text-lg mb-3 tracking-wide font-serif italic">
           Adversarial Thinking for Better AI Outputs
+        </p>
+
+        <p className="text-burgundy/40 text-sm mb-14 tracking-wide font-serif">
+          Based on the Trustworthiness <ConstitutionDialog />
         </p>
       </motion.div>
 
