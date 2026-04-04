@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Scale, Swords, Shield, RotateCcw } from "lucide-react";
+import { Scale, Swords, Shield, RotateCcw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentPanel } from "./agent-panel";
 import { VerdictPanel } from "./verdict-panel";
@@ -13,6 +13,8 @@ interface CourthouseViewProps {
   activeAgent: AgentRole | null;
   phase: TribunalPhase;
   onReset: () => void;
+  onStop: () => void;
+  isGenerating: boolean;
   streamingText?: Record<string, string>;
 }
 
@@ -22,6 +24,8 @@ export function CourthouseView({
   activeAgent,
   phase,
   onReset,
+  onStop,
+  isGenerating,
   streamingText = {},
 }: CourthouseViewProps) {
   const prosecutorMessages = messages.filter((m) => m.agent === "prosecutor");
@@ -68,14 +72,26 @@ export function CourthouseView({
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            onClick={onReset}
-            className="text-muted-foreground hover:text-foreground gap-2 shrink-0 cursor-pointer"
-          >
-            <RotateCcw className="w-4 h-4" />
-            New Case
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            {isGenerating && (
+              <Button
+                variant="ghost"
+                onClick={onStop}
+                className="text-prosecutor hover:text-prosecutor-light hover:bg-prosecutor/10 gap-2 cursor-pointer"
+              >
+                <Square className="w-3.5 h-3.5 fill-current" />
+                Stop
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              onClick={onReset}
+              className="text-muted-foreground hover:text-foreground gap-2 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4" />
+              New Case
+            </Button>
+          </div>
         </div>
       </motion.header>
 

@@ -122,6 +122,11 @@ async function collectAndStream(
 
 // --- Main Action ---
 
+async function isStopped(ctx: ActionCtx, debateId: Id<"debates">): Promise<boolean> {
+  const debate = await ctx.runQuery(internal.debates.getDebateInternal, { debateId });
+  return debate?.phase === "verdict";
+}
+
 export const run = internalAction({
   args: { debateId: v.id("debates") },
   handler: async (ctx, { debateId }) => {
@@ -138,6 +143,8 @@ export const run = internalAction({
     try {
       // Brief convening pause
       await new Promise((r) => setTimeout(r, 1200));
+
+      if (await isStopped(ctx, debateId)) return;
       await ctx.runMutation(internal.debates.setPhase, {
         debateId,
         phase: "debating",
@@ -162,11 +169,12 @@ export const run = internalAction({
       );
 
       // Step 2: Defendant initial response
+      if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
           model: openai.responses("gpt-5.4"),
           system: DEFENDANT_SYSTEM,
-          prompt: `The following prompt has been submitted to the Tribunal for adversarial refinement:\n\n"${debate.text}"\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}\n\nGenerate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format.`,
+          prompt: `The following prompt has been submitted to the Tribunal for adversarial refinement:\n\n"${debate.text}"\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}\n\nGenerate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format. Keep your response under 500 words.`,
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
@@ -181,9 +189,10 @@ export const run = internalAction({
       );
 
       // Step 3: Prosecutor challenge #1
+      if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
-          model: google("gemini-3.1-pro"),
+          model: google("gemini-3.1-pro-preview"),
           system: PROSECUTOR_SYSTEM,
           prompt: `The following prompt was submitted:\n"${debate.text}"\n\nFull transcript so far:\n${debateCtx.transcript.join("\n\n")}\n\nSearch the web and challenge the Defendant's response using the Constitution's framework:\n- Accuracy: Are claims consistent with verifiable knowledge?\n- Completeness: What essential information is missing?\n- Believability: Are there logical gaps?\n- Reputation: Are sources credible?\n- Cognitive Distortions: Overconfidence, lack of uncertainty disclosure?\n\nCite all sources inline using [Source Name](URL) format.`,
           tools: {
@@ -200,6 +209,7 @@ export const run = internalAction({
       );
 
       // Step 4: Defendant rebuttal #1
+      if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
           model: openai.responses("gpt-5.4"),
@@ -219,9 +229,10 @@ export const run = internalAction({
       );
 
       // Step 5: Prosecutor challenge #2
+      if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
-          model: google("gemini-3.1-pro"),
+          model: google("gemini-3.1-pro-preview"),
           system: PROSECUTOR_SYSTEM,
           prompt: `Review the Defendant's rebuttal and deliver your final challenge.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nFocus on the most impactful remaining issues: Accuracy concerns, Completeness gaps, cognitive distortions, and harm risks. This is the Defendant's last chance to improve before the Judge's verdict. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
@@ -238,6 +249,7 @@ export const run = internalAction({
       );
 
       // Step 6: Defendant rebuttal #2 (this IS the final output)
+      if (await isStopped(ctx, debateId)) return;
       await collectAndStream(
         streamText({
           model: openai.responses("gpt-5.4"),
@@ -257,6 +269,7 @@ export const run = internalAction({
       );
 
       // Step 7: Judge verdict (evaluation per Constitution)
+      if (await isStopped(ctx, debateId)) return;
       // Find the defendant's final response for evaluation
       const defendantMessages = debateCtx.transcript.filter((t) => t.startsWith("[DEFENDANT"));
       const finalResponse = defendantMessages[defendantMessages.length - 1] ?? "";

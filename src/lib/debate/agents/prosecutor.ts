@@ -27,7 +27,7 @@ export function streamChallenge(state: DebateState) {
     .join("\n\n");
 
   return streamText({
-    model: google("gemini-3.1-pro"),
+    model: google("gemini-3.1-pro-preview"),
     system: SYSTEM_PROMPT,
     prompt: `The following prompt was submitted:
 "${state.originalText}"
@@ -56,7 +56,7 @@ export function streamSecondChallenge(state: DebateState) {
     .join("\n\n");
 
   return streamText({
-    model: google("gemini-3.1-pro"),
+    model: google("gemini-3.1-pro-preview"),
     system: SYSTEM_PROMPT,
     prompt: `Review the Defendant's rebuttal and deliver your final challenge. Search for additional evidence if needed.
 
