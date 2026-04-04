@@ -41,9 +41,9 @@
   --color-prosecutor: #b83c3c;
   --color-prosecutor-light: #dc5858;
   --color-prosecutor-dim: #7a2828;
-  --color-advocate: #3c6eb8;
-  --color-advocate-light: #5888dc;
-  --color-advocate-dim: #284878;
+  --color-defendant: #3c6eb8;
+  --color-defendant-light: #5888dc;
+  --color-defendant-dim: #284878;
   --color-surface: #0f0f12;
   --color-surface-elevated: #161619;
 }
@@ -146,7 +146,7 @@
 .prosecutor-glow {
   box-shadow: 0 0 20px rgba(184, 60, 60, 0.08), 0 0 60px rgba(184, 60, 60, 0.04);
 }
-.advocate-glow {
+.defendant-glow {
   box-shadow: 0 0 20px rgba(60, 110, 184, 0.08), 0 0 60px rgba(60, 110, 184, 0.04);
 }
 

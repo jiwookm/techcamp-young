@@ -25,11 +25,16 @@ export function CourthouseView({
   streamingText = {},
 }: CourthouseViewProps) {
   const prosecutorMessages = messages.filter((m) => m.agent === "prosecutor");
-  const advocateMessages = messages.filter((m) => m.agent === "advocate");
+  const defendantMessages = messages.filter((m) => m.agent === "defendant");
   const judgeMessages = messages.filter(
     (m) => m.agent === "judge" && m.type !== "verdict",
   );
   const verdictMessage = messages.find((m) => m.type === "verdict");
+
+  // The defendant's final rebuttal is the actual output
+  const defendantFinalResponse = [...defendantMessages].reverse().find(
+    (m) => m.type === "rebuttal",
+  );
 
   return (
     <div className="flex flex-col">
@@ -119,7 +124,7 @@ export function CourthouseView({
           />
         </motion.div>
 
-        {/* Prosecutor & Advocate */}
+        {/* Prosecutor & Defendant */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -141,18 +146,33 @@ export function CourthouseView({
             transition={{ duration: 0.5, delay: 0.7 }}
           >
             <AgentPanel
-              role="advocate"
+              role="defendant"
               icon={Shield}
-              messages={advocateMessages}
-              isActive={activeAgent === "advocate"}
+              messages={defendantMessages}
+              isActive={activeAgent === "defendant"}
               variant="vertical"
-              streamingContent={activeAgent === "advocate" ? Object.values(streamingText)[0] : undefined}
+              streamingContent={activeAgent === "defendant" ? Object.values(streamingText)[0] : undefined}
             />
           </motion.div>
         </div>
 
-        {/* Verdict */}
-        {verdictMessage && <VerdictPanel message={verdictMessage} />}
+        {/* Final Response (Defendant's refined output) */}
+        {defendantFinalResponse && phase === "verdict" && (
+          <VerdictPanel
+            message={defendantFinalResponse}
+            variant="response"
+          />
+        )}
+
+        {/* Judicial Verdict */}
+        {verdictMessage && (
+          <div className="mt-5">
+            <VerdictPanel
+              message={verdictMessage}
+              variant="verdict"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

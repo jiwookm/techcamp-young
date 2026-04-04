@@ -3,45 +3,46 @@ import { streamText } from "ai";
 import { CONSTITUTION } from "../constitution";
 import type { DebateState } from "@/lib/types";
 
-const SYSTEM_PROMPT = `You are the Prosecutor of the Tribunal, an adversarial fact-checking court.
+const SYSTEM_PROMPT = `You are the Prosecutor of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You rigorously challenge every claim submitted for review. You search for counter-evidence, identify logical fallacies, and expose unsupported assertions.
+You rigorously critique the Defendant's response using the Constitution's evaluation framework. Your goal is to expose weaknesses so the Defendant can improve before the Judge's final evaluation.
 
-## Constitution
+## Constitution (Evaluation Framework)
 ${CONSTITUTION}
 
 ## Rules
-- Be rigorous but fair. Do not strawman.
-- ALWAYS ground arguments in evidence. No speculation.
-- When you find a contradicting source, cite the full reference.
-- If a sub-claim is well-supported, acknowledge it briefly and move on.
-- Use the google_search tool to find counter-evidence for each sub-claim.
-- Quantify discrepancies when possible (e.g., "The claim says 80% but OECD found 14%").
-- Keep each argument focused and under 200 words.`;
+- Challenge the Defendant's response on the Constitution's quality dimensions: Accuracy, Completeness, Believability, and Reputation (Article 2).
+- Identify cognitive distortions: overconfidence, lack of uncertainty disclosure, trust distortion through rhetoric (Article 3).
+- Flag potential harm risks: misunderstanding potential, risk of inducing incorrect actions (Article 4).
+- ALWAYS search the web for counter-evidence and better sources.
+- ALWAYS cite every source inline using markdown: [Source Name](URL).
+- Be rigorous but constructive — your critiques should push the Defendant to produce a more trustworthy response.
+- Never fabricate sources or URLs. If you cannot find a source, say so.
+- Quantify discrepancies when possible.`;
 
 export function streamChallenge(state: DebateState) {
-  const claimList = state.subClaims
-    .map((c) => `- ${c.id}: [${c.category}] ${c.text}`)
-    .join("\n");
-
-  const priorMessages = state.messages
+  const transcript = state.messages
     .map((m) => `[${m.agent.toUpperCase()} - ${m.type}]: ${m.content}`)
     .join("\n\n");
 
   return streamText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3.1-pro"),
     system: SYSTEM_PROMPT,
-    prompt: `The following text has been submitted for review:
+    prompt: `The following prompt was submitted:
 "${state.originalText}"
 
-Sub-claims to challenge:
-${claimList}
+Full transcript so far:
+${transcript}
 
-Prior proceedings:
-${priorMessages}
+Search the web and challenge the Defendant's response using the Constitution's framework:
+- **Accuracy**: Are claims consistent with verifiable knowledge? Find counter-evidence.
+- **Completeness**: What essential information or perspectives are missing?
+- **Believability**: Are there logical gaps or unsupported inferences?
+- **Reputation**: Are sources credible? Are claims properly attributed?
+- **Cognitive Distortions**: Is there overconfidence, lack of uncertainty disclosure, or rhetorical trust distortion?
 
-Search the web for counter-evidence and challenge each sub-claim. For each, cite specific sources that contradict or undermine the claim. Be precise and evidence-driven.`,
+Cite all sources inline using [Source Name](URL) format.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -49,20 +50,26 @@ Search the web for counter-evidence and challenge each sub-claim. For each, cite
   });
 }
 
-export function streamRebuttal(state: DebateState) {
+export function streamSecondChallenge(state: DebateState) {
   const transcript = state.messages
     .map((m) => `[${m.agent.toUpperCase()} - ${m.type}]: ${m.content}`)
     .join("\n\n");
 
   return streamText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-3.1-pro"),
     system: SYSTEM_PROMPT,
-    prompt: `Review the Defense's arguments and provide your rebuttal. Search for additional evidence if needed. Address each of the Defense's key points and explain why they are insufficient or misleading.
+    prompt: `Review the Defendant's rebuttal and deliver your final challenge. Search for additional evidence if needed.
 
 Full transcript:
 ${transcript}
 
-Deliver your rebuttal. Focus on the weakest points in the Defense's argument. Keep it under 200 words.`,
+Focus on the most impactful remaining issues from the Constitution's framework:
+- Remaining Accuracy concerns (factually incorrect or unverifiable claims)
+- Completeness gaps that persist
+- Unresolved cognitive distortions (overconfidence, missing uncertainty disclosure)
+- Harm risks that the Defendant has not adequately addressed
+
+This is the Defendant's last chance to improve before the Judge's verdict. Make your final challenge count. Cite all sources inline using [Source Name](URL) format.`,
     tools: {
       google_search: google.tools.googleSearch({}),
     },

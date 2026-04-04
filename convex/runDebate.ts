@@ -9,103 +9,70 @@ import type { ActionCtx } from "./_generated/server";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { generateText, streamText, Output } from "ai";
-import { z } from "zod";
+import { streamText } from "ai";
 import { CONSTITUTION } from "./constitution";
 
 // --- System Prompts ---
 
-const JUDGE_SYSTEM = `You are the Presiding Judge of the Tribunal, an adversarial fact-checking court.
-
-## Your Role
-You are impartial. You never take sides. You analyze evidence presented by both the Prosecution and the Defense, and render verdicts strictly according to the Constitution.
+const JUDGE_SYSTEM = `You are the Presiding Judge of the Tribunal. Your role is strictly defined by the Constitution below.
 
 ## Constitution
 ${CONSTITUTION}
 
-## Rules
-- Always cite which Constitution article informs your reasoning
-- Use formal judicial language
-- If evidence is insufficient, rule "unverifiable" — never guess
-- Keep statements concise and authoritative`;
+## Operational Rules
+- You EVALUATE the Defendant's response. You do NOT generate, modify, or supplement it.
+- Keep your opening brief and procedural — do not recite the Constitution.
+- Use formal judicial language throughout.
+- Your verdict must follow the Constitution's framework exactly:
+  1. Decompose the response into Claims, Evidence, Sources, and Uncertainty markers (Article 1)
+  2. Score key Claims on Accuracy, Completeness, Believability, Reputation (Article 2)
+  3. Assess cognitive distortions — overconfidence, lack of uncertainty disclosure (Article 3)
+  4. Evaluate trust components: Ability, Integrity, Benevolence, Harm Risk (Article 4)
+  5. Assess overall trustworthiness (Article 5)
+  6. Issue verdict: Acceptable, Qualified, or Rejected (Article 6)
+  7. Provide explicit justification with Claim evaluations, trust component scores, and critical strengths/deficiencies (Article 7)
+- You are PROHIBITED from introducing new information, generating claims, revising the response, or issuing a verdict without justification (Article 8).`;
 
-const PROSECUTOR_SYSTEM = `You are the Prosecutor of the Tribunal, an adversarial fact-checking court.
+const PROSECUTOR_SYSTEM = `You are the Prosecutor of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You rigorously challenge every claim submitted for review. You search for counter-evidence, identify logical fallacies, and expose unsupported assertions.
+You rigorously critique the Defendant's response using the Constitution's evaluation framework. Your goal is to expose weaknesses so the Defendant can improve before the Judge's final evaluation.
 
-## Constitution
+## Constitution (Evaluation Framework)
 ${CONSTITUTION}
 
 ## Rules
-- Be rigorous but fair. Do not strawman.
-- ALWAYS ground arguments in evidence. No speculation.
-- When you find a contradicting source, cite the full reference.
-- If a sub-claim is well-supported, acknowledge it briefly and move on.
-- Use the google_search tool to find counter-evidence for each sub-claim.
-- Quantify discrepancies when possible.
-- Keep each argument focused and under 200 words.`;
+- Challenge the Defendant's response on the Constitution's quality dimensions: Accuracy, Completeness, Believability, and Reputation (Article 2).
+- Identify cognitive distortions: overconfidence, lack of uncertainty disclosure, trust distortion through rhetoric (Article 3).
+- Flag potential harm risks: misunderstanding potential, risk of inducing incorrect actions (Article 4).
+- ALWAYS search the web for counter-evidence and better sources.
+- ALWAYS cite every source inline using markdown: [Source Name](URL).
+- Be rigorous but constructive — your critiques should push the Defendant to produce a more trustworthy response.
+- Never fabricate sources or URLs.
+- Quantify discrepancies when possible.`;
 
-const ADVOCATE_SYSTEM = `You are the Defense Advocate of the Tribunal, an adversarial fact-checking court.
+const DEFENDANT_SYSTEM = `You are the Defendant of the Tribunal, an adversarial thinking system that produces high-quality AI outputs.
 
 ## Your Role
-You find legitimate support for the submitted claims. You search for corroborating evidence, provide context that the Prosecution may have omitted, and defend claims that have genuine merit.
+You generate comprehensive, well-researched responses to prompts. You then defend and improve your work through adversarial debate with the Prosecutor. Your final response will be evaluated by the Judge under the Constitution's trustworthiness criteria.
 
-## Constitution
+## Constitution (You will be evaluated on these criteria)
 ${CONSTITUTION}
 
 ## Rules
-- Defend with evidence, not rhetoric.
-- If a claim is indefensible, concede it explicitly.
-- Differentiate between "the exact number is wrong" and "the underlying thesis is wrong."
-- Use the web_search_preview tool to find supporting evidence.
-- Acknowledge genuine weaknesses honestly.
-- Keep each argument focused and under 200 words.`;
-
-// --- Schemas ---
-
-const subClaimSchema = z.object({
-  claims: z.array(
-    z.object({
-      id: z.string(),
-      text: z.string(),
-      category: z.enum([
-        "factual",
-        "statistical",
-        "causal",
-        "predictive",
-        "opinion",
-      ]),
-    }),
-  ),
-});
-
-const verdictSchema = z.object({
-  overallRating: z.enum([
-    "verified",
-    "mostly_true",
-    "mixed",
-    "mostly_false",
-    "false",
-    "unverifiable",
-  ]),
-  confidence: z.number().min(0).max(1),
-  summary: z.string(),
-  subClaimResults: z.array(
-    z.object({
-      subClaimId: z.string(),
-      rating: z.string(),
-      reasoning: z.string(),
-    }),
-  ),
-  recommendedRevision: z.string().optional(),
-});
+- ALWAYS search the web for authoritative sources before writing.
+- ALWAYS cite every source inline using markdown: [Source Name](URL).
+- Your initial response should be thorough, well-structured, and directly address the prompt.
+- Be aware you will be evaluated on: Accuracy, Completeness, Believability, Reputation (Article 2).
+- Explicitly acknowledge uncertainty where it exists — assertive language without evidence will be flagged as overconfidence (Article 3).
+- During rebuttals: address the Prosecutor's critiques head-on, strengthen weak points with new evidence, and concede valid criticisms honestly.
+- Your final rebuttal IS the output shown to the user. Make it the best possible response to the original prompt.
+- Never fabricate sources or URLs.`;
 
 // --- Helpers ---
 
 interface DebateContext {
   text: string;
-  subClaims: Array<{ id: string; text: string; category: string }>;
   transcript: string[];
 }
 
@@ -165,7 +132,6 @@ export const run = internalAction({
 
     const debateCtx: DebateContext = {
       text: debate.text,
-      subClaims: [],
       transcript: [],
     };
 
@@ -177,32 +143,14 @@ export const run = internalAction({
         phase: "debating",
       });
 
-      // Step 1: Judge decomposes claims
-      const { output } = await generateText({
-        model: anthropic("claude-sonnet-4-20250514"),
-        output: Output.object({ schema: subClaimSchema }),
-        system: JUDGE_SYSTEM,
-        prompt: `Decompose the following AI-generated text into 3-5 verifiable sub-claims. Assign each a unique ID (claim-1, claim-2, etc.) and classify its category.\n\nText to analyze:\n"${debate.text}"`,
-        temperature: 0.3,
-      });
-
-      debateCtx.subClaims = output?.claims ?? [];
-      await ctx.runMutation(internal.debates.setSubClaims, {
-        debateId,
-        subClaims: debateCtx.subClaims,
-      });
-
-      const claimList = debateCtx.subClaims
-        .map((c, i) => `${i + 1}. [${c.category.toUpperCase()}] ${c.text}`)
-        .join("\n");
-
-      // Step 2: Judge opening
       let order = 0;
+
+      // Step 1: Judge opening (brief, no constitution)
       await collectAndStream(
         streamText({
-          model: anthropic("claude-sonnet-4-20250514"),
+          model: anthropic("claude-opus-4-6"),
           system: JUDGE_SYSTEM,
-          prompt: `You are opening a case. The following text has been submitted for adversarial review:\n"${debate.text}"\n\nYou have decomposed it into the following sub-claims:\n${claimList}\n\nDeliver your opening statement. Announce the sub-claims to be examined and instruct the Prosecution to begin its challenge. Keep it under 150 words.`,
+          prompt: `The court will now hear arguments on the following prompt:\n\n"${debate.text}"\n\nDeliver a brief opening statement. Announce the prompt under consideration and instruct the Defendant to present their initial response. Keep it under 80 words. Do not recite the Constitution.`,
           temperature: 0.3,
         }),
         ctx,
@@ -213,12 +161,31 @@ export const run = internalAction({
         debateCtx,
       );
 
-      // Step 3: Prosecutor challenge (Gemini + Google Search)
+      // Step 2: Defendant initial response
       await collectAndStream(
         streamText({
-          model: google("gemini-2.5-flash"),
+          model: openai.responses("gpt-5.4"),
+          system: DEFENDANT_SYSTEM,
+          prompt: `The following prompt has been submitted to the Tribunal for adversarial refinement:\n\n"${debate.text}"\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}\n\nGenerate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format.`,
+          tools: {
+            web_search_preview: openai.tools.webSearchPreview({}),
+          },
+          temperature: 0.5,
+        }),
+        ctx,
+        debateId,
+        "defendant",
+        "response",
+        order++,
+        debateCtx,
+      );
+
+      // Step 3: Prosecutor challenge #1
+      await collectAndStream(
+        streamText({
+          model: google("gemini-3.1-pro"),
           system: PROSECUTOR_SYSTEM,
-          prompt: `The following text has been submitted for review:\n"${debate.text}"\n\nSub-claims to challenge:\n${debateCtx.subClaims.map((c) => `- ${c.id}: [${c.category}] ${c.text}`).join("\n")}\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}\n\nSearch the web for counter-evidence and challenge each sub-claim. Be precise and evidence-driven.`,
+          prompt: `The following prompt was submitted:\n"${debate.text}"\n\nFull transcript so far:\n${debateCtx.transcript.join("\n\n")}\n\nSearch the web and challenge the Defendant's response using the Constitution's framework:\n- Accuracy: Are claims consistent with verifiable knowledge?\n- Completeness: What essential information is missing?\n- Believability: Are there logical gaps?\n- Reputation: Are sources credible?\n- Cognitive Distortions: Overconfidence, lack of uncertainty disclosure?\n\nCite all sources inline using [Source Name](URL) format.`,
           tools: {
             google_search: google.tools.googleSearch({}),
           },
@@ -227,17 +194,17 @@ export const run = internalAction({
         ctx,
         debateId,
         "prosecutor",
-        "argument",
+        "challenge",
         order++,
         debateCtx,
       );
 
-      // Step 4: Advocate defense (GPT-4o + Web Search)
+      // Step 4: Defendant rebuttal #1
       await collectAndStream(
         streamText({
-          model: openai.responses("gpt-4o"),
-          system: ADVOCATE_SYSTEM,
-          prompt: `The following text has been submitted for review:\n"${debate.text}"\n\nSub-claims:\n${debateCtx.subClaims.map((c) => `- ${c.id}: [${c.category}] ${c.text}`).join("\n")}\n\nFull transcript so far:\n${debateCtx.transcript.join("\n\n")}\n\nSearch the web for supporting evidence and defend the claims. Concede points that are genuinely indefensible.`,
+          model: openai.responses("gpt-5.4"),
+          system: DEFENDANT_SYSTEM,
+          prompt: `Review the Prosecutor's challenges and provide your rebuttal. Search for additional evidence to strengthen your position.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nAddress each critique directly. Correct Accuracy issues with evidence. Fill Completeness gaps. Add uncertainty disclosure where flagged. Concede valid points honestly. Your response should be a COMPLETE, IMPROVED version — not just rebuttals. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
@@ -245,34 +212,18 @@ export const run = internalAction({
         }),
         ctx,
         debateId,
-        "advocate",
-        "counter",
+        "defendant",
+        "rebuttal",
         order++,
         debateCtx,
       );
 
-      // Step 5: Judge interjection
+      // Step 5: Prosecutor challenge #2
       await collectAndStream(
         streamText({
-          model: anthropic("claude-sonnet-4-20250514"),
-          system: JUDGE_SYSTEM,
-          prompt: `Review the debate transcript so far and provide a brief judicial interjection. Note any arguments that are circular, any evidence being ignored, or any procedural issues. Keep it under 100 words.\n\nTranscript:\n${debateCtx.transcript.join("\n\n")}`,
-          temperature: 0.3,
-        }),
-        ctx,
-        debateId,
-        "judge",
-        "interjection",
-        order++,
-        debateCtx,
-      );
-
-      // Step 6: Prosecutor rebuttal
-      await collectAndStream(
-        streamText({
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-3.1-pro"),
           system: PROSECUTOR_SYSTEM,
-          prompt: `Review the Defense's arguments and provide your rebuttal. Search for additional evidence if needed.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nDeliver your rebuttal. Focus on the weakest points. Keep it under 200 words.`,
+          prompt: `Review the Defendant's rebuttal and deliver your final challenge.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nFocus on the most impactful remaining issues: Accuracy concerns, Completeness gaps, cognitive distortions, and harm risks. This is the Defendant's last chance to improve before the Judge's verdict. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
             google_search: google.tools.googleSearch({}),
           },
@@ -281,17 +232,17 @@ export const run = internalAction({
         ctx,
         debateId,
         "prosecutor",
-        "closing",
+        "challenge",
         order++,
         debateCtx,
       );
 
-      // Step 7: Advocate closing
+      // Step 6: Defendant rebuttal #2 (this IS the final output)
       await collectAndStream(
         streamText({
-          model: openai.responses("gpt-4o"),
-          system: ADVOCATE_SYSTEM,
-          prompt: `Deliver your closing argument. Summarize which claims are well-supported, which you concede, and what the overall verdict should be.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nProvide a balanced closing. Keep it under 200 words.`,
+          model: openai.responses("gpt-5.4"),
+          system: DEFENDANT_SYSTEM,
+          prompt: `Review the Prosecutor's final challenge and provide your final rebuttal.\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nThis is your FINAL response — it will be shown to the user as the output and evaluated by the Judge. Make it the best possible answer to the original prompt. Address all remaining critiques. Correct any Accuracy issues. Fill all Completeness gaps. Ensure proper uncertainty disclosure. Cite all sources inline using [Source Name](URL) format.`,
           tools: {
             web_search_preview: openai.tools.webSearchPreview({}),
           },
@@ -299,39 +250,22 @@ export const run = internalAction({
         }),
         ctx,
         debateId,
-        "advocate",
-        "closing",
+        "defendant",
+        "rebuttal",
         order++,
         debateCtx,
       );
 
-      // Step 8: Judge verdict (structured)
-      const verdictResult = await generateText({
-        model: anthropic("claude-sonnet-4-20250514"),
-        output: Output.object({ schema: verdictSchema }),
-        system: JUDGE_SYSTEM,
-        prompt: `Based on the full debate transcript, render your structured verdict.\n\nOriginal text: "${debate.text}"\n\nSub-claims:\n${debateCtx.subClaims.map((c) => `- ${c.id}: ${c.text} [${c.category}]`).join("\n")}\n\nFull transcript:\n${debateCtx.transcript.join("\n\n")}\n\nApply the Constitution strictly. Rate each sub-claim and provide an overall rating with confidence score (0-1).`,
-        temperature: 0.3,
-      });
+      // Step 7: Judge verdict (evaluation per Constitution)
+      // Find the defendant's final response for evaluation
+      const defendantMessages = debateCtx.transcript.filter((t) => t.startsWith("[DEFENDANT"));
+      const finalResponse = defendantMessages[defendantMessages.length - 1] ?? "";
 
-      const verdict = verdictResult.output ?? {
-        overallRating: "unverifiable",
-        confidence: 0,
-        summary: "Unable to render verdict due to processing error.",
-        subClaimResults: [],
-      };
-
-      await ctx.runMutation(internal.debates.setVerdict, {
-        debateId,
-        verdict,
-      });
-
-      // Step 9: Judge verdict text
-      await collectAndStream(
+      const verdictText = await collectAndStream(
         streamText({
-          model: anthropic("claude-sonnet-4-20250514"),
+          model: anthropic("claude-opus-4-6"),
           system: JUDGE_SYSTEM,
-          prompt: `Deliver the final ruling as a formal judicial statement.\n\nStructured verdict:\n- Overall Rating: ${verdict.overallRating.toUpperCase().replace("_", " ")}\n- Confidence: ${(verdict.confidence * 100).toFixed(0)}%\n- Summary: ${verdict.summary}\n\nSub-claim results:\n${verdict.subClaimResults.map((r) => `- ${r.subClaimId}: ${r.rating} — ${r.reasoning}`).join("\n")}\n\n${verdict.recommendedRevision ? `Recommended revision: "${verdict.recommendedRevision}"` : ""}\n\nWrite the ruling in formal court language. Start with "RULING:" followed by the finding. Keep it under 300 words.`,
+          prompt: `The proceedings are complete. Evaluate the Defendant's final response and render your verdict per the Constitution.\n\nOriginal prompt: "${debate.text}"\n\n## Defendant's Final Response:\n${finalResponse}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nRender your verdict following the Constitution strictly:\n1. Claim Decomposition (Article 1)\n2. Information Quality scoring (Article 2)\n3. Cognitive Distortion Assessment (Article 3)\n4. Trust Components: Ability, Integrity, Benevolence, Harm Risk (Article 4)\n5. Overall Trustworthiness (Article 5)\n6. Verdict: Acceptable, Qualified, or Rejected (Article 6)\n7. Explicit Justification (Article 7)\n\nREMEMBER: You must NOT introduce new information, generate claims, or revise the response (Article 8).`,
           temperature: 0.3,
         }),
         ctx,
@@ -341,6 +275,19 @@ export const run = internalAction({
         order++,
         debateCtx,
       );
+
+      // Store final output (the defendant's last rebuttal)
+      const lastDefendantMsg = debateCtx.transcript
+        .filter((t) => t.startsWith("[DEFENDANT"))
+        .pop();
+      const finalOutput = lastDefendantMsg
+        ? lastDefendantMsg.replace(/^\[DEFENDANT - \w+\]: /, "")
+        : verdictText;
+
+      await ctx.runMutation(internal.debates.setFinalOutput, {
+        debateId,
+        finalOutput,
+      });
 
       // Done
       await ctx.runMutation(internal.debates.setPhase, {

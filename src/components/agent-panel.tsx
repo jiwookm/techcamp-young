@@ -36,13 +36,13 @@ const ROLE_STYLES: Record<
     textColor: "text-prosecutor",
     glowClass: "prosecutor-glow",
   },
-  advocate: {
-    border: "border-advocate/12",
-    activeBorder: "border-advocate/35",
-    headerBg: "bg-advocate/5",
-    dot: "bg-advocate",
-    textColor: "text-advocate",
-    glowClass: "advocate-glow",
+  defendant: {
+    border: "border-defendant/12",
+    activeBorder: "border-defendant/35",
+    headerBg: "bg-defendant/5",
+    dot: "bg-defendant",
+    textColor: "text-defendant",
+    glowClass: "defendant-glow",
   },
   judge: {
     border: "border-gold/12",

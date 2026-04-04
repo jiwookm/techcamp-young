@@ -5,9 +5,6 @@ import type {
   DebateMessage,
   AgentRole,
   TribunalPhase,
-  SubClaim,
-  Evidence,
-  VerdictResult,
 } from "@/lib/types";
 
 interface DebateStreamEvent {
@@ -19,9 +16,6 @@ export function useDebateStream() {
   const [messages, setMessages] = useState<DebateMessage[]>([]);
   const [activeAgent, setActiveAgent] = useState<AgentRole | null>(null);
   const [phase, setPhase] = useState<TribunalPhase>("landing");
-  const [subClaims, setSubClaims] = useState<SubClaim[]>([]);
-  const [evidence, setEvidence] = useState<Evidence[]>([]);
-  const [verdict, setVerdict] = useState<VerdictResult | null>(null);
   const [streamingText, setStreamingText] = useState<Record<string, string>>(
     {},
   );
@@ -30,9 +24,6 @@ export function useDebateStream() {
   const startDebate = useCallback(async (text: string) => {
     setMessages([]);
     setActiveAgent(null);
-    setSubClaims([]);
-    setEvidence([]);
-    setVerdict(null);
     setStreamingText({});
     setPhase("convening");
 
@@ -116,18 +107,6 @@ export function useDebateStream() {
               break;
             }
 
-            case "sub-claims":
-              setSubClaims(event.claims as SubClaim[]);
-              break;
-
-            case "evidence":
-              setEvidence((prev) => [...prev, event.evidence as Evidence]);
-              break;
-
-            case "verdict":
-              setVerdict(event.result as VerdictResult);
-              break;
-
             case "error":
               console.error("Debate error:", event.message);
               setPhase("landing");
@@ -147,9 +126,6 @@ export function useDebateStream() {
     setMessages([]);
     setActiveAgent(null);
     setPhase("landing");
-    setSubClaims([]);
-    setEvidence([]);
-    setVerdict(null);
     setStreamingText({});
   }, []);
 
@@ -160,8 +136,5 @@ export function useDebateStream() {
     startDebate,
     reset,
     streamingText,
-    subClaims,
-    evidence,
-    verdict,
   };
 }
