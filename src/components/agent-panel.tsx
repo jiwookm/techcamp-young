@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
+import ReactMarkdown from "react-markdown";
 import { type LucideIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DebateMessage, AgentRole, AGENT_CONFIGS } from "@/lib/types";
@@ -156,9 +157,9 @@ export function AgentPanel({
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">
                   {msg.type}
                 </span>
-                <p className="text-sm text-foreground/80 leading-relaxed mt-1">
-                  {msg.content}
-                </p>
+                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm prose-invert max-w-none prose-p:my-1 prose-a:text-blue-400 prose-strong:text-foreground/90">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
               </motion.div>
             ))}
             {isActive && streamingContent && (
@@ -170,10 +171,10 @@ export function AgentPanel({
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground/40 font-medium">
                   speaking
                 </span>
-                <p className="text-sm text-foreground/80 leading-relaxed mt-1">
-                  {streamingContent}
+                <div className="text-sm text-foreground/80 leading-relaxed mt-1 prose prose-sm prose-invert max-w-none prose-p:my-1 prose-a:text-blue-400 prose-strong:text-foreground/90">
+                  <ReactMarkdown>{streamingContent}</ReactMarkdown>
                   <span className="inline-block w-0.5 h-4 bg-foreground/50 animate-pulse ml-0.5 align-text-bottom" />
-                </p>
+                </div>
               </motion.div>
             )}
             {isActive && !streamingContent && <TypingIndicator role={role} />}

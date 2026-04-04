@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import ReactMarkdown from "react-markdown";
 import { Scale } from "lucide-react";
 import { DebateMessage } from "@/lib/types";
 
@@ -30,9 +31,11 @@ export function VerdictPanel({ message }: VerdictPanelProps) {
 
       {/* Content */}
       <div className="px-6 py-5">
-        <p className="text-base font-medium text-gold-light mb-4">{ruling}</p>
-        <div className="text-sm text-foreground/75 leading-relaxed whitespace-pre-line">
-          {rest}
+        <div className="text-base font-medium text-gold-light mb-4 prose prose-sm prose-invert max-w-none prose-p:my-0 prose-strong:text-gold-light">
+          <ReactMarkdown>{ruling}</ReactMarkdown>
+        </div>
+        <div className="text-sm text-foreground/75 leading-relaxed prose prose-sm prose-invert max-w-none prose-p:my-1 prose-a:text-blue-400 prose-strong:text-foreground/90">
+          <ReactMarkdown>{rest}</ReactMarkdown>
         </div>
       </div>
     </motion.div>
