@@ -35,6 +35,10 @@ export function CourthouseView({
   );
   const verdictMessage = messages.find((m) => m.type === "verdict");
 
+  // When judge already delivered the opening and is active again, it must be the verdict
+  const judgeStreamingContent = activeAgent === "judge" ? Object.values(streamingText)[0] : undefined;
+  const judgeIsStreamingVerdict = activeAgent === "judge" && judgeMessages.length > 0;
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Case header */}
@@ -131,7 +135,7 @@ export function CourthouseView({
             messages={judgeMessages}
             isActive={activeAgent === "judge"}
             variant="horizontal"
-            streamingContent={activeAgent === "judge" ? Object.values(streamingText)[0] : undefined}
+            streamingContent={!judgeIsStreamingVerdict ? judgeStreamingContent : undefined}
           />
         </motion.div>
 
@@ -168,9 +172,10 @@ export function CourthouseView({
         </div>
 
         {/* Judicial Verdict & Final Output */}
-        {verdictMessage && (
+        {(verdictMessage || judgeIsStreamingVerdict) && (
           <VerdictPanel
             message={verdictMessage}
+            streamingContent={judgeIsStreamingVerdict ? judgeStreamingContent : undefined}
             variant="verdict"
           />
         )}
