@@ -154,6 +154,62 @@ function MessageCard({
   );
 }
 
+function getNextLabel(role: AgentRole, messages: DebateMessage[]): string {
+  if (role === "defendant") {
+    const rebuttals = messages.filter((m) => m.type === "rebuttal");
+    return messages.length === 0 ? "Initial Response" : `Rebuttal ${rebuttals.length + 1}`;
+  }
+  if (role === "prosecutor") {
+    const challenges = messages.filter((m) => m.type === "challenge");
+    return `Challenge ${challenges.length + 1}`;
+  }
+  return "Speaking";
+}
+
+function PreparingCard({ role, messages }: { role: AgentRole; messages: DebateMessage[] }) {
+  const styles = ROLE_STYLES[role];
+  const label = getNextLabel(role, messages);
+
+  return (
+    <motion.div
+      className={cn(
+        "rounded-lg border bg-surface-elevated/30",
+        styles.activeBorder,
+        styles.glowClass,
+      )}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 px-4 py-2 border-b rounded-t-lg",
+          styles.headerBg,
+          styles.border,
+        )}
+      >
+        <span
+          className={cn(
+            "font-serif text-[10px] tracking-[0.12em] font-medium uppercase",
+            styles.textColor,
+          )}
+        >
+          {label}
+        </span>
+        <span
+          className={cn(
+            "w-1.5 h-1.5 rounded-full animate-pulse",
+            styles.dot,
+          )}
+        />
+      </div>
+      <div className="px-4">
+        <TypingIndicator role={role} />
+      </div>
+    </motion.div>
+  );
+}
+
 function StreamingCard({
   content,
   role,
@@ -296,21 +352,12 @@ export function AgentPanel({
         );
       })}
 
-      {/* Streaming card */}
+      {/* Streaming card or preparing card */}
       {isActive && streamingContent && (
         <StreamingCard content={streamingContent} role={role} />
       )}
-
-      {/* Typing indicator when waiting */}
       {showTypingPlaceholder && (
-        <div
-          className={cn(
-            "rounded-lg border bg-surface-elevated/30 px-4",
-            styles.border,
-          )}
-        >
-          <TypingIndicator role={role} />
-        </div>
+        <PreparingCard role={role} messages={messages} />
       )}
 
       {/* Empty state */}

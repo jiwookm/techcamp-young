@@ -133,7 +133,7 @@ export function CourthouseView({
             role="judge"
             icon={Scale}
             messages={judgeMessages}
-            isActive={activeAgent === "judge"}
+            isActive={activeAgent === "judge" && !judgeIsStreamingVerdict}
             variant="horizontal"
             streamingContent={!judgeIsStreamingVerdict ? judgeStreamingContent : undefined}
           />
