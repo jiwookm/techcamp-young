@@ -186,7 +186,7 @@ export function LandingView({
         <p className="text-xs font-serif italic text-burgundy/35 leading-relaxed">
           Hajong Kim<br />
           Jiwoo Kim<br />
-          Ji-hyun Kim<br />
+          Jihyun Kim<br />
           Bomin Chae<br />
           Junhee Lee
         </p>
