@@ -28,7 +28,7 @@ export function streamChallenge(state: DebateState) {
   )?.content ?? "";
 
   return streamText({
-    model: google("gemini-3.1-pro-preview"),
+    model: google("gemini-3-flash-preview"),
     system: SYSTEM_PROMPT,
     prompt: `The following prompt was submitted:
 "${state.originalText}"
@@ -68,7 +68,7 @@ export function streamSecondChallenge(state: DebateState) {
   )?.content ?? "";
 
   return streamText({
-    model: google("gemini-3.1-pro-preview"),
+    model: google("gemini-3-flash-preview"),
     system: SYSTEM_PROMPT,
     prompt: `Review the Defendant's rebuttal and deliver your final challenge. The debate is about the accuracy of the initial response below.
 
@@ -102,7 +102,7 @@ export function streamClosingStatement(state: DebateState) {
   )?.content ?? "";
 
   return streamText({
-    model: google("gemini-3.1-pro-preview"),
+    model: google("gemini-3-flash-preview"),
     system: SYSTEM_PROMPT,
     prompt: `Deliver your closing statement. The debate is about the accuracy of the Defendant's initial response below.
 
