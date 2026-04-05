@@ -24,7 +24,7 @@ ${CONSTITUTION}
 
 export function streamOpening(state: DebateState) {
   return streamText({
-    model: anthropic("claude-opus-4-6"),
+    model: anthropic("claude-sonnet-4-6"),
     system: SYSTEM_PROMPT,
     prompt: `The court will now hear arguments on the following prompt:
 
@@ -45,7 +45,7 @@ export function streamVerdict(state: DebateState) {
   const finalResponse = defendantMessages[defendantMessages.length - 1]?.content ?? "";
 
   return streamText({
-    model: anthropic("claude-opus-4-6"),
+    model: anthropic("claude-sonnet-4-6"),
     system: SYSTEM_PROMPT,
     prompt: `The proceedings are complete. You must now evaluate the Defendant's final response and render your verdict per the Constitution.
 
@@ -57,105 +57,79 @@ ${finalResponse}
 ## Full Transcript of Proceedings:
 ${transcript}
 
-You MUST follow this exact structure. Every section is MANDATORY. Use the exact headings, formulas, and numerical computations where indicated.
+You MUST follow this exact structure. Every section is MANDATORY. Do NOT use markdown tables — use bullet lists instead.
 
 ---
 
-## 1. Claim Decomposition (Article 2)
+## 1. Claim Decomposition
 
-Decompose the Defendant's response into its constituent units. List each as a bullet:
-- **Claim [N]**: [the atomic factual or inferential statement]
-  - Evidence: [supporting justification found in the response, or "None provided"]
-  - Source: [reference/provenance cited, or "None cited"]
-  - Uncertainty: [any explicit uncertainty or limitation expressed, or "None expressed"]
+Decompose the Defendant's response into its constituent Claims:
+- **C1**: [statement] — Evidence: [evidence or "None"] | Source: [source or "None"] | Uncertainty: [any expressed, or "None"]
+- **C2**: ...
+(continue for all Claims)
 
 ---
 
-## 2. Dual-Perspective Information Quality Scores (Articles 1 & 3)
+## 2. Dual-Perspective Scoring
 
-For EACH Claim, assign scores from BOTH Defense and Prosecutor perspectives using ONLY this scale:
-- 1 = Consistent with verifiable knowledge
-- 0.5 = Partially consistent
-- 0 = Not verifiable
-- −1 = Factually incorrect
+Score each Claim from both perspectives (scale: 1 = verified, 0.5 = partial, 0 = unverifiable, −1 = incorrect):
 
 ### Defense Perspective
-| Claim | Accuracy | Completeness | Believability | Reputation | Flags |
-|-------|----------|--------------|---------------|------------|-------|
+- **C1**: Accuracy=[val] Completeness=[val] Believability=[val] Reputation=[val] — Flags: [any threshold violations or "None"]
+- **C2**: ...
+
+**Defense averages**: Accuracy=**[val]**, Completeness=**[val]**, Believability=**[val]**, Reputation=**[val]**
 
 ### Prosecutor Perspective
-| Claim | Accuracy | Completeness | Believability | Reputation | Flags |
-|-------|----------|--------------|---------------|------------|-------|
+- **C1**: Accuracy=[val] Completeness=[val] Believability=[val] Reputation=[val] — Flags: [any threshold violations or "None"]
+- **C2**: ...
 
-In the Flags column, apply the constitutional thresholds:
-- Accuracy ≤ 0 → "Critical defect" (Art. 3 Cl. 6)
-- Completeness ≤ 0.5 → "Insufficient" (Art. 3 Cl. 7)
-- Believability ≤ 0 → "Logically invalid" (Art. 3 Cl. 8)
-- Reputation = 0 → "Unsupported" (Art. 3 Cl. 9)
+**Prosecutor averages**: Accuracy=**[val]**, Completeness=**[val]**, Believability=**[val]**, Reputation=**[val]**
 
-Compute averages for each perspective:
-- **Defense avg**: Accuracy=[val], Completeness=[val], Believability=[val], Reputation=[val]
-- **Prosecutor avg**: Accuracy=[val], Completeness=[val], Believability=[val], Reputation=[val]
+Flag thresholds: Accuracy ≤ 0 = critical defect, Completeness ≤ 0.5 = insufficient, Believability ≤ 0 = logically invalid, Reputation = 0 = unsupported.
 
 ---
 
-## 3. Trust Component Computation (Article 4)
+## 3. Trust Computation
 
-Using the average scores from Section 2, compute for EACH perspective using the EXACT formulas:
+Compute using the exact formulas from Article 4:
 
-### Defense Trust
-- Ability = 0.6 × [Accuracy] + 0.4 × [Completeness] = [value]
-- Integrity = 0.5 × [Believability] + 0.5 × [Reputation] = [value]
-- Benevolence = 0.4 × max([Accuracy], 0) + 0.2 × [Completeness] + 0.2 × [Believability] + 0.2 × [Reputation] = [value]
-- **Defense Trust = 0.4 × [Ability] + 0.4 × [Integrity] + 0.2 × [Benevolence] = [value]**
+**Defense**: Ability = 0.6×[Acc] + 0.4×[Comp] = **[val]** | Integrity = 0.5×[Bel] + 0.5×[Rep] = **[val]** | Benevolence = 0.4×max([Acc],0) + 0.2×[Comp] + 0.2×[Bel] + 0.2×[Rep] = **[val]** → **Defense Trust = 0.4×[Abi] + 0.4×[Int] + 0.2×[Ben] = [val]**
 
-### Prosecutor Trust
-- Ability = 0.6 × [Accuracy] + 0.4 × [Completeness] = [value]
-- Integrity = 0.5 × [Believability] + 0.5 × [Reputation] = [value]
-- Benevolence = 0.4 × max([Accuracy], 0) + 0.2 × [Completeness] + 0.2 × [Believability] + 0.2 × [Reputation] = [value]
-- **Prosecutor Trust = 0.4 × [Ability] + 0.4 × [Integrity] + 0.2 × [Benevolence] = [value]**
+**Prosecutor**: Ability = **[val]** | Integrity = **[val]** | Benevolence = **[val]** → **Prosecutor Trust = [val]**
 
 ---
 
-## 4. Decision (Article 5)
+## 4. Decision
 
-Apply decision rules to BOTH perspectives:
-- Defense Trust [value]: [Accepted (≥0.8) / Reconstruct (0.5–0.8) / Rejected (<0.5)]
-- Prosecutor Trust [value]: [Accepted (≥0.8) / Reconstruct (0.5–0.8) / Rejected (<0.5)]
+- Defense Trust **[val]**: [Accept ≥0.8 / Reconstruct 0.5–0.8 / Reject <0.5]
+- Prosecutor Trust **[val]**: [Accept / Reconstruct / Reject]
 
 **Decision: [Accept / Selective Reconstruction / Reject]**
 
 ---
 
-## 5. Selective Reconstruction (Article 6)
+## 5. Claim Disposition
 
-If the decision is Selective Reconstruction, apply the integration rules:
-1. Compare Defense and Prosecutor scores for each Claim
-2. Retain Claims with stronger evaluated quality from either perspective
-3. Exclude Claims identified as defective, misleading, unsupported, or risky
-4. Form the reconstructed response by selecting, filtering, and reorganizing retained Claims
-5. Do NOT introduce new Claims or alter the meaning of retained Claims
+**Retained**: [list Claims kept and why]
+**Discarded**: [list Claims removed and why]
 
-If the decision is Accept, reproduce the Defendant's response with retained Claims only.
-If the decision is Reject, state that the response cannot be used and list the critical defects.
-
-### Retained Claims: [list]
-### Discarded Claims: [list with reason]
+If Accepted: all Claims retained. If Rejected: list critical defects.
 
 ---
 
-## 6. Justification (Article 7)
+## 6. Justification
 
-1. **Key Claim evaluation results** — which Claims strengthened or weakened the response from each perspective
-2. **Defense vs. Prosecutor comparison** — where the two perspectives agreed and diverged
-3. **Retained and discarded elements** — what was kept, what was removed, and why
-4. **Final Trust assessment** — the reasoning path from the computed scores to the decision
+Briefly explain:
+1. Where Defense and Prosecutor agreed vs. diverged
+2. Why specific Claims were retained or discarded
+3. The reasoning from Trust scores to the final decision
 
 ---
 
 ## 7. Final Output
 
-Based on the decision and reconstruction above, produce the definitive response to the user's original prompt: "${state.originalText}"
+Produce the definitive response to: "${state.originalText}"
 
 - If **Accepted**: reproduce the Defendant's response using only retained Claims.
 - If **Selective Reconstruction**: present the integrated response formed from retained Claims of both perspectives. No new Claims may be introduced (Art. 8). The output must be a subset or recombination of original Claims (Art. 6 Cl. 9).
