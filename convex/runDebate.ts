@@ -9,7 +9,7 @@ import type { ActionCtx } from "./_generated/server";
 import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { streamText } from "ai";
+import { generateText, streamText } from "ai";
 import { CONSTITUTION } from "./constitution";
 
 // --- System Prompts ---
@@ -137,6 +137,17 @@ export const run = internalAction({
       transcript: [],
     };
 
+    const sessionNumber = debate.sessionNumber ?? 1;
+    const previousLessons = debate.previousLessons;
+
+    // Compact context for agents who had a prior session
+    const defendantLessons = previousLessons
+      ? `\n\n## Findings from Prior Court Session(s)\nThe court previously identified these issues with your response:\n${previousLessons}\n\nAddress these specific weaknesses. Strengthen the evidence where it was found lacking.`
+      : "";
+    const prosecutorLessons = previousLessons
+      ? `\n\n## Findings from Prior Court Session(s)\nThe court previously identified these issues:\n${previousLessons}\n\nVerify whether the Defendant has fixed these. If not, press harder. Also look for new weaknesses.`
+      : "";
+
     try {
       // Brief convening pause
       await new Promise((r) => setTimeout(r, 1200));
@@ -150,11 +161,14 @@ export const run = internalAction({
       let order = 0;
 
       // Step 1: Judge opening (brief, no constitution)
+      const sessionNote = sessionNumber > 1
+        ? ` This is re-evaluation session ${sessionNumber} of 3. The court has reconvened at the user's request.`
+        : "";
       await collectAndStream(
         streamText({
           model: anthropic("claude-opus-4-6"),
           system: JUDGE_SYSTEM,
-          prompt: `The court will now hear arguments on the following prompt:\n\n"${debate.text}"\n\nDeliver a brief opening statement. Announce the prompt under consideration and instruct the Defendant to present their initial response. Keep it under 80 words. Do not recite the Constitution.`,
+          prompt: `The court will now hear arguments on the following prompt:\n\n"${debate.text}"\n\nDeliver a brief opening statement.${sessionNote} Announce the prompt under consideration and instruct the Defendant to present their initial response. Keep it under 80 words. Do not recite the Constitution.`,
           temperature: 0.3,
         }),
         ctx,
@@ -171,7 +185,7 @@ export const run = internalAction({
         streamText({
           model: openai.responses("gpt-5.4"),
           system: DEFENDANT_SYSTEM,
-          prompt: `The following prompt has been submitted to the Tribunal for adversarial refinement:\n\n"${debate.text}"\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}\n\nGenerate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Your response will be evaluated by the Judge under the Constitution — pay attention to Accuracy, Completeness, Believability, Reputation, and proper uncertainty disclosure. Cite every source inline using [Source Name](URL) format. Keep your response under 500 words.`,
+          prompt: `The following prompt has been submitted to the Tribunal for adversarial refinement:\n\n"${debate.text}"\n\nPrior proceedings:\n${debateCtx.transcript.join("\n\n")}${defendantLessons}\n\nGenerate a comprehensive, well-researched response to this prompt. Search the web for authoritative sources. Back every claim with concrete, verifiable evidence. Cite every source inline using [Source Name](URL) format. Keep your response under 500 words.`,
           tools: {
             web_search: openai.tools.webSearch({}),
           },
@@ -197,7 +211,7 @@ export const run = internalAction({
         streamText({
           model: google("gemini-3.1-pro-preview"),
           system: PROSECUTOR_SYSTEM,
-          prompt: `The following prompt was submitted:\n"${debate.text}"\n\n## Defendant's Initial Response (the response under scrutiny):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}\n\nRigorously analyze the Defendant's initial response. For each claim and source:\n\n1. **Source Verification**: Search the web for EACH source the Defendant cited. Does the source exist? Does it actually support the claim? Is it a credible, authoritative source? Are there more recent or contradicting sources?\n\n2. **Claim Accuracy**: For each factual claim, search for counter-evidence. What do other authoritative sources say? Are the numbers correct? Is the context accurate?\n\n3. **Logical Analysis**: Are there unsupported inferences? Does correlation get presented as causation? Are there logical gaps?\n\n4. **Evidence Strength**: Which claims lack credible sources? Which sources are outdated, misrepresented, or unreliable? Present your own counter-evidence.\n\nDo NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
+          prompt: `The following prompt was submitted:\n"${debate.text}"\n\n## Defendant's Initial Response (the response under scrutiny):\n${initialResponseContent}\n\n## Full Transcript:\n${debateCtx.transcript.join("\n\n")}${prosecutorLessons}\n\nRigorously analyze the Defendant's initial response. For each claim and source:\n\n1. **Source Verification**: Search the web for EACH source the Defendant cited. Does the source exist? Does it actually support the claim? Is it a credible, authoritative source? Are there more recent or contradicting sources?\n\n2. **Claim Accuracy**: For each factual claim, search for counter-evidence. What do other authoritative sources say? Are the numbers correct? Is the context accurate?\n\n3. **Logical Analysis**: Are there unsupported inferences? Does correlation get presented as causation? Are there logical gaps?\n\n4. **Evidence Strength**: Which claims lack credible sources? Which sources are outdated, misrepresented, or unreliable? Present your own counter-evidence.\n\nDo NOT concede points. Challenge everything rigorously. Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
           tools: {
             google_search: google.tools.googleSearch({}),
           },
@@ -310,12 +324,27 @@ export const run = internalAction({
         debateCtx,
       );
 
-      const finalOutput = verdictText;
-
       await ctx.runMutation(internal.debates.setFinalOutput, {
         debateId,
-        finalOutput,
+        finalOutput: verdictText,
       });
+
+      // Extract compact lesson for potential re-evaluation (fast, cheap model)
+      if (sessionNumber < 3) {
+        try {
+          const { text: lesson } = await generateText({
+            model: anthropic("claude-haiku-4-5-20251001"),
+            prompt: `Compress this verdict into a brief lesson (under 150 words). List ONLY concrete findings:\n- Which specific claims were accurate vs inaccurate/unsupported\n- Which sources were verified vs unreliable\n- The overall decision and trust scores\n\nDo NOT include methodology, formulas, or article references. Only factual findings.\n\nVerdict:\n${verdictText}`,
+            temperature: 0,
+          });
+          await ctx.runMutation(internal.debates.setLessons, {
+            debateId,
+            lessons: `[Session ${sessionNumber}] ${lesson}`,
+          });
+        } catch (e) {
+          console.error("Lesson extraction failed:", e);
+        }
+      }
 
       // Done
       await ctx.runMutation(internal.debates.setPhase, {

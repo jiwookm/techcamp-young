@@ -8,6 +8,9 @@ export default defineSchema({
     activeAgent: v.optional(v.string()),
     streamingText: v.optional(v.string()),
     finalOutput: v.optional(v.string()),
+    sessionNumber: v.optional(v.number()),
+    previousLessons: v.optional(v.string()),
+    lessons: v.optional(v.string()),
     // Legacy fields kept optional for backwards compatibility with old data
     subClaims: v.optional(
       v.array(
