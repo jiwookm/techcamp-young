@@ -96,3 +96,37 @@ Do NOT concede. Push on every remaining weakness. Cite all sources inline using 
     temperature: 0.5,
   });
 }
+
+export function streamClosingStatement(state: DebateState) {
+  const transcript = state.messages
+    .map((m) => `[${m.agent.toUpperCase()} - ${m.type}]: ${m.content}`)
+    .join("\n\n");
+
+  const initialResponse = state.messages.find(
+    (m) => m.agent === "defendant" && m.type === "response",
+  )?.content ?? "";
+
+  return streamText({
+    model: google("gemini-3.1-pro-preview"),
+    system: SYSTEM_PROMPT,
+    prompt: `Deliver your closing statement. The debate is about the accuracy of the Defendant's initial response below.
+
+## Defendant's Initial Response (the original response under debate):
+${initialResponse}
+
+## Full Transcript:
+${transcript}
+
+This is your final opportunity to address the court. In your closing statement:
+1. **Summarize unresolved issues**: Which of your challenges were never adequately addressed by the Defendant?
+2. **Assess source quality overall**: After two rounds of scrutiny, how credible are the Defendant's sources as a whole?
+3. **Highlight the most critical weaknesses**: What are the top 2-3 issues that the Judge should weigh most heavily?
+4. **Recommend a verdict**: Based on the Constitution's Article 6 categories (Acceptable, Qualified, Rejected), what verdict do the proceedings support and why?
+
+Be concise and impactful. Cite all sources inline using [Source Name](URL) format. Keep your response under 500 words.`,
+    tools: {
+      google_search: google.tools.googleSearch({}),
+    },
+    temperature: 0.5,
+  });
+}

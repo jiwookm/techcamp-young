@@ -1,7 +1,7 @@
 import type { DebateMessage, DebateState, AgentRole, MessageType } from "@/lib/types";
 import type { DebateStreamEvent } from "./stream-protocol";
 import { streamOpening, streamVerdict } from "./agents/judge";
-import { streamChallenge, streamSecondChallenge } from "./agents/prosecutor";
+import { streamChallenge, streamSecondChallenge, streamClosingStatement } from "./agents/prosecutor";
 import { streamInitialResponse, streamRebuttal } from "./agents/defendant";
 
 type Emit = (event: DebateStreamEvent) => void;
@@ -118,7 +118,16 @@ export async function orchestrateDebate(
     emit,
   );
 
-  // Step 7: Judge verdict (evaluation per Constitution)
+  // Step 7: Prosecutor challenge #3 (closing statement)
+  await collectStream(
+    streamClosingStatement(state),
+    "prosecutor",
+    "challenge",
+    state,
+    emit,
+  );
+
+  // Step 8: Judge verdict (evaluation per Constitution)
   await collectStream(
     streamVerdict(state),
     "judge",

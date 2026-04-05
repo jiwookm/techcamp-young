@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import ReactMarkdown from "react-markdown";
 import { type LucideIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DebateMessage, AgentRole, AGENT_CONFIGS, MessageType } from "@/lib/types";
+import { DebateMessage, AgentRole, AGENT_CONFIGS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface AgentPanelProps {
@@ -54,13 +54,25 @@ const ROLE_STYLES: Record<
   },
 };
 
-const MESSAGE_LABELS: Record<MessageType, string> = {
-  opening: "Opening Statement",
-  response: "Initial Response",
-  challenge: "Challenge",
-  rebuttal: "Rebuttal",
-  verdict: "Verdict",
-};
+function getMessageLabel(msg: DebateMessage, index: number, allMessages: DebateMessage[]): string {
+  if (msg.type === "opening") return "Opening Statement";
+  if (msg.type === "response") return "Initial Response";
+  if (msg.type === "verdict") return "Verdict";
+
+  // For challenges and rebuttals, number them or give special names
+  const sameType = allMessages.filter((m) => m.type === msg.type);
+  const typeIndex = sameType.indexOf(msg);
+
+  if (msg.type === "challenge") {
+    if (typeIndex === sameType.length - 1 && sameType.length >= 3) return "Closing Statement";
+    return `Challenge ${typeIndex + 1}`;
+  }
+  if (msg.type === "rebuttal") {
+    return `Rebuttal ${typeIndex + 1}`;
+  }
+
+  return msg.type;
+}
 
 const linkComponents = {
   a: ({ children, ...props }: React.ComponentPropsWithoutRef<"a"> & { children?: React.ReactNode }) => (
@@ -87,10 +99,12 @@ function MessageCard({
   msg,
   role,
   isLatest,
+  label,
 }: {
   msg: DebateMessage;
   role: AgentRole;
   isLatest: boolean;
+  label: string;
 }) {
   const styles = ROLE_STYLES[role];
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -123,7 +137,7 @@ function MessageCard({
             styles.textColor,
           )}
         >
-          {MESSAGE_LABELS[msg.type] ?? msg.type}
+          {label}
         </span>
       </div>
       <div
@@ -227,7 +241,7 @@ export function AgentPanel({
     );
   }
 
-  const showTypingPlaceholder = isActive && !streamingContent && messages.length === 0;
+  const showTypingPlaceholder = isActive && !streamingContent;
 
   return (
     <div className="space-y-3">
@@ -269,14 +283,18 @@ export function AgentPanel({
       </div>
 
       {/* Individual message cards */}
-      {messages.map((msg, i) => (
-        <MessageCard
-          key={msg.id}
-          msg={msg}
-          role={role}
-          isLatest={i === messages.length - 1}
-        />
-      ))}
+      {messages.map((msg, i) => {
+        const label = getMessageLabel(msg, i, messages);
+        return (
+          <MessageCard
+            key={msg.id}
+            msg={msg}
+            role={role}
+            isLatest={i === messages.length - 1}
+            label={label}
+          />
+        );
+      })}
 
       {/* Streaming card */}
       {isActive && streamingContent && (
@@ -382,7 +400,7 @@ function JudgePanel({
       {/* Messages */}
       <div ref={scrollRef}>
         <ScrollArea
-          className={variant === "horizontal" ? "h-[200px]" : "h-[340px]"}
+          className={variant === "horizontal" ? "" : "h-[340px]"}
         >
           <div className="p-4 space-y-4">
             {messages.length === 0 && !isActive && (
