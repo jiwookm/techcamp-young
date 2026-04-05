@@ -16,6 +16,9 @@ export function Tribunal() {
 
   const startDebateMutation = useMutation(api.debates.startDebate);
   const stopDebateMutation = useMutation(api.debates.stopDebate);
+  const requestReEvaluationMutation = useMutation(
+    api.debates.requestReEvaluation,
+  );
 
   const debate = useQuery(
     api.debates.getDebate,
@@ -30,6 +33,7 @@ export function Tribunal() {
   const phase: TribunalPhase = debate?.phase as TribunalPhase ?? "landing";
   const activeAgent: AgentRole | null =
     (debate?.activeAgent as AgentRole) ?? null;
+  const sessionNumber: number = (debate?.sessionNumber as number) ?? 1;
   const messages: DebateMessage[] = (convexMessages ?? []).map(
     (m: { _id: string; agent: string; type: string; content: string }) => ({
       id: m._id,
@@ -56,6 +60,12 @@ export function Tribunal() {
     if (!debateId) return;
     await stopDebateMutation({ debateId });
   }, [debateId, stopDebateMutation]);
+
+  const handleReEvaluation = useCallback(async () => {
+    if (!debateId) return;
+    const newId = await requestReEvaluationMutation({ debateId });
+    setDebateId(newId);
+  }, [debateId, requestReEvaluationMutation]);
 
   // Auto-scroll to courthouse when debate starts
   useEffect(() => {
@@ -94,8 +104,10 @@ export function Tribunal() {
             phase={phase}
             onReset={handleReset}
             onStop={handleStop}
+            onReEvaluate={handleReEvaluation}
             isGenerating={isGenerating}
             streamingText={streamingText}
+            sessionNumber={sessionNumber}
           />
         </motion.div>
       )}

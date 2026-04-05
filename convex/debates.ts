@@ -22,6 +22,36 @@ export const startDebate = mutation({
   },
 });
 
+export const requestReEvaluation = mutation({
+  args: { debateId: v.id("debates") },
+  returns: v.id("debates"),
+  handler: async (ctx, { debateId }) => {
+    const debate = await ctx.db.get(debateId);
+    if (!debate) throw new Error("Debate not found");
+
+    const sessionNumber = debate.sessionNumber ?? 1;
+    if (sessionNumber >= 3) throw new Error("Maximum sessions reached");
+    if (debate.phase !== "verdict") throw new Error("Debate not concluded");
+
+    // Accumulate lessons from all prior sessions
+    const accumulated = [debate.previousLessons, debate.lessons]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const newDebateId = await ctx.db.insert("debates", {
+      text: debate.text,
+      phase: "convening",
+      sessionNumber: sessionNumber + 1,
+      previousLessons: accumulated || undefined,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.runDebate.run, {
+      debateId: newDebateId,
+    });
+    return newDebateId;
+  },
+});
+
 export const stopDebate = mutation({
   args: { debateId: v.id("debates") },
   handler: async (ctx, { debateId }) => {
@@ -90,6 +120,16 @@ export const setFinalOutput = internalMutation({
   },
   handler: async (ctx, { debateId, finalOutput }) => {
     await ctx.db.patch(debateId, { finalOutput });
+  },
+});
+
+export const setLessons = internalMutation({
+  args: {
+    debateId: v.id("debates"),
+    lessons: v.string(),
+  },
+  handler: async (ctx, { debateId, lessons }) => {
+    await ctx.db.patch(debateId, { lessons });
   },
 });
 

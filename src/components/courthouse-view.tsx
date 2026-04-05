@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Scale, Swords, Shield, RotateCcw, Square } from "lucide-react";
+import { Scale, Swords, Shield, RotateCcw, Square, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgentPanel } from "./agent-panel";
 import { VerdictPanel } from "./verdict-panel";
@@ -14,8 +14,10 @@ interface CourthouseViewProps {
   phase: TribunalPhase;
   onReset: () => void;
   onStop: () => void;
+  onReEvaluate: () => void;
   isGenerating: boolean;
   streamingText?: Record<string, string>;
+  sessionNumber: number;
 }
 
 export function CourthouseView({
@@ -25,8 +27,10 @@ export function CourthouseView({
   phase,
   onReset,
   onStop,
+  onReEvaluate,
   isGenerating,
   streamingText = {},
+  sessionNumber,
 }: CourthouseViewProps) {
   const prosecutorMessages = messages.filter((m) => m.agent === "prosecutor");
   const defendantMessages = messages.filter((m) => m.agent === "defendant");
@@ -38,6 +42,8 @@ export function CourthouseView({
   // When judge already delivered the opening and is active again, it must be the verdict
   const judgeStreamingContent = activeAgent === "judge" ? Object.values(streamingText)[0] : undefined;
   const judgeIsStreamingVerdict = activeAgent === "judge" && judgeMessages.length > 0;
+
+  const canReEvaluate = phase === "verdict" && sessionNumber < 3;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -64,6 +70,9 @@ export function CourthouseView({
                   }`}
                 >
                   {phase === "verdict" ? "CONCLUDED" : "IN SESSION"}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full border border-court/20 text-court/70 bg-court/5">
+                  Session {sessionNumber}/3
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1 truncate">
@@ -114,7 +123,7 @@ export function CourthouseView({
               strokeWidth={1}
             />
             <p className="font-serif text-xl tracking-[0.15em] text-burgundy/50">
-              Convening Tribunal...
+              {sessionNumber > 1 ? "Reconvening Tribunal..." : "Convening Tribunal..."}
             </p>
           </motion.div>
         </motion.div>
@@ -178,6 +187,25 @@ export function CourthouseView({
             streamingContent={judgeIsStreamingVerdict ? judgeStreamingContent : undefined}
             variant="verdict"
           />
+        )}
+
+        {/* Re-evaluation button */}
+        {canReEvaluate && (
+          <motion.div
+            className="flex justify-center py-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <Button
+              onClick={onReEvaluate}
+              className="gap-2 bg-court/10 text-court hover:bg-court/20 border border-court/25 font-serif tracking-wider cursor-pointer"
+              variant="ghost"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Request Re-evaluation (Session {sessionNumber + 1}/3)
+            </Button>
+          </motion.div>
         )}
       </div>
     </div>
